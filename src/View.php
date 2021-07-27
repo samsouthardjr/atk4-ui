@@ -611,7 +611,7 @@ class View extends AbstractView implements JsExpressionable
                     $isTerminated = true;
                 }
 
-                if ($isTerminated) {
+                if ($isTerminated && $v->isTriggered() && $v->canTrigger()) {
                     $args[Callback::URL_QUERY_TRIGGER_PREFIX . $v->getUrlTrigger()] = $v->getTriggeredValue();
                 }
             }

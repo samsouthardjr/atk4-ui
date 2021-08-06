@@ -591,7 +591,6 @@ class Table extends Lister
      * rows, pointer will be used and rows will be highlighted as you hover.
      *
      * @param JsChain|\Closure|JsExpressionable $action Code to execute
-     * @param string[] An array of css class to exclude from row click
      *
      * @return Jquery
      */
@@ -600,7 +599,7 @@ class Table extends Lister
         $this->addClass('selectable');
         $this->js(true)->find('tbody')->css('cursor', 'pointer');
 
-        return $this->on('click', 'tbody tr td' . $excludeSelector ? ":not('" . implode(',', $excludeSelector) . "')" : '', $action);
+        return $this->on('click', 'tbody tr td' . ($excludeSelector ? ':not(' . implode(',', $excludeSelector) . ')' : ''), $action);
     }
 
     /**

@@ -14,6 +14,9 @@ use Atk4\Ui\Table;
  */
 class Checkbox extends Table\Column
 {
+    /** @var string Checkbox column <td> css class name */
+    public const CHECKBOX_COLUMN_CSS = 'atk-table-checkbox';
+
     public $class;
 
     /**
@@ -33,6 +36,7 @@ class Checkbox extends Table\Column
         if (!$this->class) {
             $this->class = 'cb_' . $this->short_name;
         }
+        $this->addClass(self::CHECKBOX_COLUMN_CSS);
     }
 
     public function getHeaderCellHtml(Field $field = null, $value = null)

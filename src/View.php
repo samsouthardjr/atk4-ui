@@ -605,6 +605,7 @@ class View extends AbstractView implements JsExpressionable
     protected function getRunningCallbackArgs(bool $isTerminated, array $page): array
     {
         $args = [];
+
         foreach ($this->elements as $v) {
             if ($v instanceof Callback) { // @phpstan-ignore-line
                 if (($page[Callback::URL_QUERY_TARGET] ?? null) === $v->getUrlTrigger()) {
@@ -617,8 +618,13 @@ class View extends AbstractView implements JsExpressionable
             }
         }
 
+        $parentRenderView = null;
         if ($this->issetOwner() && $this->getOwner() instanceof self) {
-            $args = array_merge($this->getOwner()->getRunningCallbackArgs($isTerminated, $page), $args);
+            $parentRenderView = $this->getOwner();
+        } // else
+
+        if ($parentRenderView !== null) {
+            $args = array_merge($parentRenderView->getRunningCallbackArgs($isTerminated, $page), $args);
         }
 
         return $args;

@@ -56,6 +56,8 @@ class Callback extends AbstractView
     public function setUrlTrigger(string $trigger = null)
     {
         $this->urlTrigger = $trigger ?: $this->name;
+
+   //     $this->getOwner()->stickyGet(self::URL_QUERY_TRIGGER_PREFIX . $this->urlTrigger);
     }
 
     public function getUrlTrigger(): string

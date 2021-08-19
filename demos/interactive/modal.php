@@ -212,16 +212,6 @@ $stepModal->set(function ($modal) use ($stepModal, $session, $prevAction, $nextA
     $stepModal->js(true)->modal('refresh');
 });
 
-// Bind next action to modal next button.
-$nextAction->on('click', $stepModal->js()->atkReloadView(
-    ['uri' => $stepModal->cb->getJsUrl(), 'uri_options' => ['move' => 'next']]
-));
-
-// Bin prev action to modal previous button.
-$prevAction->on('click', $stepModal->js()->atkReloadView(
-    ['uri' => $stepModal->cb->getJsUrl(), 'uri_options' => ['move' => 'prev']]
-));
-
 // Bind display modal to page display button.
 $menuBar = \Atk4\Ui\View::addTo($app, ['ui' => 'buttons']);
 $button = \Atk4\Ui\Button::addTo($menuBar)->set('Multi Step Modal');

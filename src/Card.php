@@ -280,11 +280,11 @@ class Card extends View
         $vp = VirtualPage::addTo($this)->set(function (View $page) use ($executorClass, $action) {
             $id = $this->stickyGet($this->name);
 
-            $executor = $page->add(new $executorClass());
+            $executor = View::addToWithCl($page, [$executorClass]);
 
             $action->setEntity($action->getModel()->load($id));
 
-            $executor->setAction($action);
+            $executor->setAction($action); // @phpstan-ignore-line
         });
 
         $btn->on('click', new JsModal($action->caption, $vp, [$this->name => (new Jquery())->parents('.atk-card')->data('id')]));

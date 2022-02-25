@@ -16,68 +16,18 @@ require_once __DIR__ . '/../init-app.php';
 
 \Atk4\Ui\Header::addTo($app, ['Basic Button', 'size' => 2]);
 
-// With Seed
-Button::addTo($app, ['Click me'])->link(['index']);
-
-// Without Seeding
-$b1 = new Button('Click me (no seed)');
-$app->add($b1);
-// must be added first
-$b1->link(['index']);
-
-\Atk4\Ui\Header::addTo($app, ['Properties', 'size' => 2]);
-Button::addTo($app, ['Primary button', 'primary']);
-Button::addTo($app, ['Load', 'labeled', 'icon' => 'pause']);
-Button::addTo($app, ['Next', 'iconRight' => 'right arrow']);
-Button::addTo($app, [null, 'circular', 'icon' => 'settings']);
-
-\Atk4\Ui\Header::addTo($app, ['Big Button', 'size' => 2]);
-Button::addTo($app, ['Click me', 'big primary', 'icon' => 'check']);
-
-\Atk4\Ui\Header::addTo($app, ['Button Intent', 'size' => 2]);
-Button::addTo($app, ['Yes', 'positive basic']);
-Button::addTo($app, ['No', 'negative basic']);
-
-\Atk4\Ui\Header::addTo($app, ['Combining Buttons', 'size' => 2]);
-
-$bar = \Atk4\Ui\View::addTo($app, ['ui' => 'vertical buttons']);
-Button::addTo($bar, ['Play', 'icon' => 'play']);
-Button::addTo($bar, ['Pause', 'icon' => 'pause']);
-Button::addTo($bar, ['Shuffle', 'icon' => 'shuffle']);
-
-\Atk4\Ui\Header::addTo($app, ['Icon Bar', 'size' => 2]);
-$bar = \Atk4\Ui\View::addTo($app, ['ui' => 'big blue buttons']);
-Button::addTo($bar, ['icon' => 'file']);
-Button::addTo($bar, ['icon' => 'yellow save']);
-Button::addTo($bar, ['icon' => 'upload', 'disabled' => true]);
-
-\Atk4\Ui\Header::addTo($app, ['Forks Button Component', 'size' => 2]);
-
-// Creating your own button component example
-
-/** @var Button $forkButtonClass */
-$forkButtonClass = AnonymousClassNameCache::get_class(fn () => new class(0) /* need 0 argument here for constructor */ extends Button {
-    public function __construct($n)
-    {
-        Icon::addTo(Button::addTo($this, ['Forks', 'blue']), ['fork']);
-        Label::addTo($this, [number_format($n), 'basic blue left pointing']);
-        parent::__construct(null, 'labeled');
-    }
+$form = \Atk4\Ui\Form::addTo($app);
+$recipient = $form->addControl(
+    'recipient',
+    [\Atk4\Ui\Form\Control\Dropdown::class,
+        'isMultiple' => true,
+        'dropdownOptions' => ['allowAdditions' => true, 'forceSelection' => false],
+    ],
+    ['default' => 'Username <user@emaildomain.de>']
+);
+$form->onSubmit(function () use ($form) {
+    echo '<pre>';
+    echo htmlspecialchars(
+        print_r($form->model->get(), true)
+    );
 });
-
-$forkButton = new $forkButtonClass(1234 + random_int(1, 100));
-$app->add($forkButton);
-
-\Atk4\Ui\Header::addTo($app, ['Custom Template', 'size' => 2]);
-
-$view = \Atk4\Ui\View::addTo($app, ['template' => new HtmlTemplate('Hello, {$tag1}, my name is {$tag2}')]);
-
-Button::addTo($view, ['World'], ['tag1']);
-Button::addTo($view, ['Agile UI', 'blue'], ['tag2']);
-
-\Atk4\Ui\Header::addTo($app, ['Attaching', 'size' => 2]);
-
-Button::addTo($app, ['Previous', 'top attached']);
-\Atk4\Ui\Table::addTo($app, ['attached', 'header' => false])
-    ->setSource(['One', 'Two', 'Three', 'Four']);
-Button::addTo($app, ['Next', 'bottom attached']);

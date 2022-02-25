@@ -80,7 +80,7 @@ if (file_exists(__DIR__ . '/../public/atkjs-ui.min.js')) {
 $app->initLayout([$app->stickyGet('layout') ?? \Atk4\Ui\Layout\Maestro::class]);
 
 $layout = $app->layout;
-if ($layout instanceof \Atk4\Ui\Layout\NavigableInterface) {
+if (false && $layout instanceof \Atk4\Ui\Layout\NavigableInterface) {
     $layout->addMenuItem(['Welcome to Agile Toolkit', 'icon' => 'gift'], [$demosUrl . 'index']);
 
     $path = $demosUrl . 'layout/';

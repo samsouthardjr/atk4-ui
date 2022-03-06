@@ -9,6 +9,7 @@ use Atk4\Ui\Button;
 use Atk4\Ui\Jquery;
 use Atk4\Ui\JsToast;
 use Atk4\Ui\UserAction\BasicExecutor;
+use Atk4\Ui\Table;
 
 /** @var \Atk4\Ui\App $app */
 require_once __DIR__ . '/../init-app.php';
@@ -20,6 +21,13 @@ $model->addUserAction('test', function (Model $model) {
 });
 
 $grid->setModel($model);
+
+// add country flag column
+$grid->addColumn('flag', [
+    Table\Column\Flag::class,
+    'code_field' => $model->fieldName()->iso,
+    'name_field' => $model->fieldName()->name,
+]);
 
 // Adding Quicksearch on Name field using auto query.
 $grid->addQuickSearch([$model->fieldName()->name], true);

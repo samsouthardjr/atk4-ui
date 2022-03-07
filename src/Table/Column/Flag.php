@@ -25,9 +25,9 @@ class Flag extends Table\Column
 
         return [
             $field->short_name => $countryCode === null ? '' : $this->getApp()->getTag('i', [
-                    'class' => strtolower($countryCode) . ' flag',
-                    'title' => $countryCode . ($countryName === null ? '' : ' - ' . $countryName)
-                ]),
+                'class' => strtolower($countryCode) . ' flag',
+                'title' => $countryCode . ($countryName === null ? '' : ' - ' . $countryName),
+            ]),
         ];
     }
 }

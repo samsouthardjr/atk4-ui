@@ -247,29 +247,6 @@ jobs:
             x: '1'
     env:
       LOG_COVERAGE: ""
-    services:
-      mysql:
-        image: mysql:8
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5 -e MYSQL_ROOT_PASSWORD=atk4_pass_root -e MYSQL_USER=atk4_test_user -e MYSQL_PASSWORD=atk4_pass -e MYSQL_DATABASE=atk4_test --entrypoint sh mysql:8 -c "exec docker-entrypoint.sh mysqld --default-authentication-plugin=mysql_native_password"
-      mariadb:
-        image: mariadb
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5 -e MYSQL_ROOT_PASSWORD=atk4_pass_root -e MYSQL_USER=atk4_test_user -e MYSQL_PASSWORD=atk4_pass -e MYSQL_DATABASE=atk4_test
-      postgres:
-        image: postgres:12-alpine
-        env:
-          POSTGRES_USER: atk4_test_user
-          POSTGRES_PASSWORD: atk4_pass
-          POSTGRES_DB: atk4_test
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      mssql:
-        image: mcr.microsoft.com/mssql/server
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: atk4_pass
-      oracle:
-        image: gvenzl/oracle-xe:18
-        env:
-          ORACLE_PASSWORD: atk4_pass
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -348,10 +325,6 @@ jobs:
 
       - name: Init
         run: |
-          php -r '(new PDO("mysql:host=mysql", "root", "atk4_pass_root"))->exec("ALTER USER '"'"'atk4_test_user'"'"'@'"'"'%'"'"' WITH MAX_USER_CONNECTIONS 5");'
-          php -r '(new PDO("mysql:host=mariadb", "root", "atk4_pass_root"))->exec("ALTER USER '"'"'atk4_test_user'"'"'@'"'"'%'"'"' WITH MAX_USER_CONNECTIONS 5");'
-          php -r '(new PDO("pgsql:host=postgres;dbname=atk4_test", "atk4_test_user", "atk4_pass"))->exec("ALTER ROLE atk4_test_user CONNECTION LIMIT 1");'
-          /usr/lib/oracle/setup.sh
           if [ -n "$LOG_COVERAGE" ]; then mkdir coverage && cp tools/CoverageUtil.php demos; fi
           ci_wait_until () { timeout 30 sh -c "until { $1 2> /dev/null; }; do sleep 0.02; done" || timeout 15 sh -c "$1" || { echo "health timeout: $1"; exit 1; }; }
           php -d opcache.enable_cli=1 -S 127.0.0.1:8888 > /dev/null 2>&1 &
@@ -368,110 +341,81 @@ jobs:
         run: |
           php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #2"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
 
-      - name: "Run tests: MySQL (only for coverage or cron)"
-        env:
-          DB_DSN: "mysql:host=mysql;dbname=atk4_test"
-          DB_USER: atk4_test_user
-          DB_PASSWORD: atk4_pass
+      - name: "Run tests: SQLite #3"
         run: |
-          sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
-          php demos/_demo-data/create-db.php
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
           vendor/bin/behat -vv --config behat.yml.dist
 
-      - name: "Run tests: MariaDB (only for coverage or cron)"
-        env:
-          DB_DSN: "mysql:host=mariadb;dbname=atk4_test"
-          DB_USER: atk4_test_user
-          DB_PASSWORD: atk4_pass
+      - name: "Run tests: SQLite #4"
         run: |
-          sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
-          php demos/_demo-data/create-db.php
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
           vendor/bin/behat -vv --config behat.yml.dist
 
-      - name: "Run tests: PostgreSQL (only for coverage or cron)"
-        env:
-          DB_DSN: "pgsql:host=postgres;dbname=atk4_test"
-          DB_USER: atk4_test_user
-          DB_PASSWORD: atk4_pass
+      - name: "Run tests: SQLite #5"
         run: |
-          sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
-          php demos/_demo-data/create-db.php
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
           vendor/bin/behat -vv --config behat.yml.dist
 
-      - name: "Run tests: MSSQL (only for coverage or cron)"
-        env:
-          DB_DSN: "sqlsrv:host=mssql;dbname=master;driverOptions[TrustServerCertificate]=1"
-          DB_USER: sa
-          DB_PASSWORD: atk4_pass
+      - name: "Run tests: SQLite #6"
         run: |
-          sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
-          php demos/_demo-data/create-db.php
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
-          vendor/bin/behat -vv --config behat.yml.dist
           vendor/bin/behat -vv --config behat.yml.dist
 
-      - name: "Run tests: Oracle (only for coverage or cron)"
-        env:
-          DB_DSN: "oci:dbname=oracle/xe"
-          DB_USER: system
-          DB_PASSWORD: atk4_pass
-          NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      - name: "Run tests: SQLite #7"
         run: |
-          sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
-          php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #8"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #9"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #10"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #11"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #12"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #13"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #14"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #15"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #16"
+        run: |
+          vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #17"
+        run: |
+          vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #18"
+        run: |
+          vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #19"
+        run: |
+          vendor/bin/behat -vv --config behat.yml.dist
+
+      - name: "Run tests: SQLite #20"
+        run: |
           vendor/bin/behat -vv --config behat.yml.dist
 
       - name: Upload coverage logs 1/2 (only for latest Chrome)

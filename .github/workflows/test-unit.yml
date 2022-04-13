@@ -77,8 +77,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1']
-        type: ['Phpunit', 'Phpunit Lowest']
+        php: ['8.1']
+        type: ['Phpunit']
         include:
           - php: '8.1' # TODO replace with 'latest' once it represents at least PHP 8.1
             type: 'Phpunit Burn'
@@ -237,13 +237,16 @@ jobs:
       matrix:
         php: ['7.4', '8.0', '8.1']
         type: ['Chrome', 'Chrome Lowest']
+        x: ['1', '2', '3', '4']
         include:
           - php: 'latest'
             type: 'Firefox'
+            x: '1'
           - php: 'latest'
             type: 'Chrome Slow'
+            x: '1'
     env:
-      LOG_COVERAGE: "${{ fromJSON('{true: \"1\", false: \"\"}')[matrix.php == '8.0' && matrix.type == 'Chrome' && (github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master')))] }}"
+      LOG_COVERAGE: ""
     services:
       mysql:
         image: mysql:8
@@ -365,9 +368,17 @@ jobs:
         run: |
           php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
 
       - name: "Run tests: MySQL (only for coverage or cron)"
-        if: (success() || failure()) && (env.LOG_COVERAGE || github.event_name == 'schedule')
         env:
           DB_DSN: "mysql:host=mysql;dbname=atk4_test"
           DB_USER: atk4_test_user
@@ -376,9 +387,17 @@ jobs:
           sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
           php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
 
       - name: "Run tests: MariaDB (only for coverage or cron)"
-        if: (success() || failure()) && (env.LOG_COVERAGE || github.event_name == 'schedule')
         env:
           DB_DSN: "mysql:host=mariadb;dbname=atk4_test"
           DB_USER: atk4_test_user
@@ -387,9 +406,17 @@ jobs:
           sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
           php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
 
       - name: "Run tests: PostgreSQL (only for coverage or cron)"
-        if: (success() || failure()) && (env.LOG_COVERAGE || github.event_name == 'schedule')
         env:
           DB_DSN: "pgsql:host=postgres;dbname=atk4_test"
           DB_USER: atk4_test_user
@@ -398,9 +425,17 @@ jobs:
           sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
           php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
 
       - name: "Run tests: MSSQL (only for coverage or cron)"
-        if: (success() || failure()) && (env.LOG_COVERAGE || github.event_name == 'schedule')
         env:
           DB_DSN: "sqlsrv:host=mssql;dbname=master;driverOptions[TrustServerCertificate]=1"
           DB_USER: sa
@@ -409,9 +444,17 @@ jobs:
           sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
           php demos/_demo-data/create-db.php
           vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
 
       - name: "Run tests: Oracle (only for coverage or cron)"
-        if: (success() || failure()) && (env.LOG_COVERAGE || github.event_name == 'schedule')
         env:
           DB_DSN: "oci:dbname=oracle/xe"
           DB_USER: system
@@ -420,6 +463,15 @@ jobs:
         run: |
           sed -E "s~(\\\$db = new.+Persistence\\\\Sql)\(.+\);~\\1('$DB_DSN', '$DB_USER', '$DB_PASSWORD');~g" -i demos/db.default.php
           php demos/_demo-data/create-db.php
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
+          vendor/bin/behat -vv --config behat.yml.dist
           vendor/bin/behat -vv --config behat.yml.dist
 
       - name: Upload coverage logs 1/2 (only for latest Chrome)

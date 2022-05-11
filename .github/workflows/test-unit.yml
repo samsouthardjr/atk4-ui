@@ -63,7 +63,7 @@ jobs:
           if [ "$(find demos/ -name '*.php' -print0 | xargs -0 grep -L "namespace Atk4\\\\Ui\\\\Demos[;\\\\]" | tee /dev/fd/2)" ]; then echo 'All demos/ files must have namespace declared' && (exit 1); fi
           vendor/bin/php-cs-fixer fix --dry-run --using-cache=no --diff --verbose
           composer self-update --snapshot
-          composer config --unset version
+          composer config --unset version && composer config --unset require-release
           composer validate --strict --no-check-lock && composer normalize --dry-run --no-check-lock
 
       - name: Run Static Analysis (only for StaticAnalysis)

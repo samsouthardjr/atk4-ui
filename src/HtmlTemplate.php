@@ -10,12 +10,14 @@ use Atk4\Data\Model;
 use Atk4\Ui\HtmlTemplate\TagTree;
 use Atk4\Ui\HtmlTemplate\Value as HtmlValue;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 class HtmlTemplate
 {
     use AppScopeTrait;
     use WarnDynamicPropertyTrait;
 
-    /** @const string */
     public const TOP_TAG = '_top';
 
     /** @var array<string, string|false> */
@@ -138,7 +140,7 @@ class HtmlTemplate
                 throw new Exception('HTML is not allowed to be dangerously set from Model');
             }
 
-            $tag = $this->getApp()->ui_persistence->typecastSaveRow($tag, $tag->get());
+            $tag = $this->getApp()->uiPersistence->typecastSaveRow($tag, $tag->get());
         }
 
         // $tag passed as associative array [tag => value]
@@ -157,7 +159,7 @@ class HtmlTemplate
                 ->addMoreInfo('value', $value);
         }
 
-        if (!is_scalar($value) && $value !== null) {
+        if (!is_scalar($value) && $value !== null) { // @phpstan-ignore-line
             throw (new Exception('Value must be scalar'))
                 ->addMoreInfo('tag', $tag)
                 ->addMoreInfo('value', $value);
@@ -204,10 +206,6 @@ class HtmlTemplate
      */
     public function set($tag, $value = null): self
     {
-        if (func_num_args() > 2) { // remove in v2.5
-            throw new \Error('3rd param $encode is no longer supported, use dangerouslySetHtml method instead');
-        }
-
         $this->_setOrAppend($tag, $value, true, false);
 
         return $this;
@@ -222,10 +220,6 @@ class HtmlTemplate
      */
     public function trySet($tag, $value = null): self
     {
-        if (func_num_args() > 2) { // remove in v2.5
-            throw new \Error('3rd param $encode is no longer supported, use tryDangerouslySetHtml method instead');
-        }
-
         $this->_setOrAppend($tag, $value, true, false, false);
 
         return $this;
@@ -267,10 +261,6 @@ class HtmlTemplate
      */
     public function append($tag, $value): self
     {
-        if (func_num_args() > 2) { // remove in v2.5
-            throw new \Error('3rd param $encode is no longer supported, use dangerouslyAppendHtml method instead');
-        }
-
         $this->_setOrAppend($tag, $value, true, true);
 
         return $this;
@@ -285,10 +275,6 @@ class HtmlTemplate
      */
     public function tryAppend($tag, $value): self
     {
-        if (func_num_args() > 2) { // remove in v2.5
-            throw new \Error('3rd param $encode is no longer supported, use tryDangerouslyAppendHtml method instead');
-        }
-
         $this->_setOrAppend($tag, $value, true, true, false);
 
         return $this;

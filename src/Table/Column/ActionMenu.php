@@ -1,14 +1,11 @@
 <?php
 
 declare(strict_types=1);
-/**
- * Table column action menu.
- * Will create a dropdown menu within table column.
- */
 
 namespace Atk4\Ui\Table\Column;
 
 use Atk4\Core\Factory;
+use Atk4\Data\Field;
 use Atk4\Data\Model;
 use Atk4\Ui\Jquery;
 use Atk4\Ui\JsChain;
@@ -16,6 +13,10 @@ use Atk4\Ui\Table;
 use Atk4\Ui\UserAction\ExecutorInterface;
 use Atk4\Ui\View;
 
+/**
+ * Table column action menu.
+ * Will create a dropdown menu within table column.
+ */
 class ActionMenu extends Table\Column
 {
     /** @var array Menu items collections. */
@@ -32,21 +33,16 @@ class ActionMenu extends Table\Column
      */
     public $label;
 
-    /** @var string Dropdown module css class name as per Formantic-ui. */
+    /** @var string Dropdown module css class name as per Formantic-UI. */
     public $ui = 'ui small dropdown button';
 
-    /** @var array The dropdown module option setting as per Fomantic-ui. */
+    /** @var array The dropdown module option setting as per Fomantic-UI. */
     public $options = ['action' => 'hide'];
 
     /** @var string Button icon to use for display dropdown. */
-    public $icon = 'dropdown icon';
+    public $icon = 'dropdown';
 
-    protected function init(): void
-    {
-        parent::init();
-    }
-
-    public function getTag($position, $value, $attr = []): string
+    public function getTag(string $position, $value, $attr = []): string
     {
         if ($this->table->hasCollapsingCssActionColumn && $position === 'body') {
             $attr['class'][] = 'collapsing';
@@ -60,15 +56,16 @@ class ActionMenu extends Table\Column
      *
      * @param View|string                           $item
      * @param \Closure|Model|ExecutorInterface|null $action
+     * @param bool|\Closure                         $isDisabled
      *
-     * @return object|string
+     * @return View
      */
     public function addActionMenuItem($item, $action = null, string $confirmMsg = '', $isDisabled = false)
     {
         $name = $this->name . '_action_' . (count($this->items) + 1);
 
         if (!is_object($item)) {
-            $item = Factory::factory([\Atk4\Ui\View::class], ['name' => false, 'ui' => 'item', 'content' => $item]);
+            $item = Factory::factory([View::class], ['name' => false, 'ui' => 'item', 'content' => $item]);
         }
 
         $this->items[] = $item;
@@ -91,16 +88,16 @@ class ActionMenu extends Table\Column
         return $item;
     }
 
-    public function getHeaderCellHtml(\Atk4\Data\Field $field = null, $value = null)
+    public function getHeaderCellHtml(Field $field = null, $value = null): string
     {
         $this->table->js(true)->find('.atk-action-menu')->dropdown(
             array_merge(
                 $this->options,
                 [
-                    'direction' => 'auto',  // direction need to be auto.
-                    'transition' => 'none', // no transition.
-                    'onShow' => (new JsChain('atk.tableDropdown.onShow')),
-                    'onHide' => (new JsChain('atk.tableDropdown.onHide')),
+                    'direction' => 'auto', // direction needs to be "auto"
+                    'transition' => 'none', // no transition
+                    'onShow' => (new JsChain('atk.tableDropdownHelper.onShow')),
+                    'onHide' => (new JsChain('atk.tableDropdownHelper.onHide')),
                 ]
             )
         );
@@ -108,7 +105,7 @@ class ActionMenu extends Table\Column
         return parent::getHeaderCellHtml($field, $value);
     }
 
-    public function getDataCellTemplate(\Atk4\Data\Field $field = null)
+    public function getDataCellTemplate(Field $field = null): string
     {
         if (!$this->items) {
             return '';
@@ -120,17 +117,16 @@ class ActionMenu extends Table\Column
             $output .= $item->getHtml();
         }
 
-        $s = '<div class="' . $this->ui . ' atk-action-menu">';
-        $s .= '<div class="text">' . $this->label . '</div>';
-        $s .= $this->icon ? '<i class="' . $this->icon . '"></i>' : '';
-        $s .= '<div class="menu">';
-        $s .= $output;
-        $s .= '</div></div>';
+        $res = $this->getApp()->getTag('div', ['class' => $this->ui . ' atk-action-menu'], [
+            ['div', ['class' => 'text'], $this->label],
+            $this->icon ? $this->getApp()->getTag('i', ['class' => $this->icon . ' icon'], '') : '',
+            ['div', ['class' => 'menu'], [$output]],
+        ]);
 
-        return $s;
+        return $res;
     }
 
-    public function getHtmlTags(Model $row, $field)
+    public function getHtmlTags(Model $row, ?Field $field): array
     {
         $tags = [];
         foreach ($this->callbacks as $name => $callback) {

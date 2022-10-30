@@ -18,7 +18,7 @@ class JsSortable extends JsCallback
      *  default to data-id.
      *
      * If the data-{label} attribute is not set for each list element, then the $_POST['order']
-     * value will be empty. Only org_idx and new_idx will be sent in callback request.
+     * value will be empty. Only orgIdx and newIdx will be sent in callback request.
      *
      * @var string
      */
@@ -26,7 +26,7 @@ class JsSortable extends JsCallback
 
     /**
      * The css class name of the handle element for dragging purpose.
-     *   if null, the entire element become the dragging handle.
+     * If null, the entire element become the dragging handle.
      *
      * @var string|null
      */
@@ -41,14 +41,15 @@ class JsSortable extends JsCallback
     protected function init(): void
     {
         parent::init();
+
         if (!$this->view) {
             $this->view = $this->getOwner();
         }
-        $this->getApp()->requireJs('https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.12/lib/draggable.bundle.js');
+        $this->getApp()->requireJs($this->getApp()->cdn['atk'] . '/external/@shopify/draggable/lib/draggable.bundle.js');
 
         $this->view->js(true)->atkJsSortable([
-            'uri' => $this->getJsUrl(),
-            'uri_options' => $this->args,
+            'url' => $this->getJsUrl(),
+            'urlOptions' => $this->args,
             'container' => $this->container,
             'draggable' => $this->draggable,
             'handleClass' => $this->handleClass,
@@ -60,27 +61,27 @@ class JsSortable extends JsCallback
     /**
      * Callback when container has been reorder.
      */
-    public function onReorder(\Closure $fx)
+    public function onReorder(\Closure $fx): void
     {
         $this->set(function () use ($fx) {
-            $sortOrders = explode(',', $_POST['order'] ?? '');
-            $source = $_POST['source'] ?? null;
-            $newIdx = $_POST['new_idx'] ?? null;
-            $orgIdx = $_POST['org_idx'] ?? null;
+            $sortOrders = explode(',', $_POST['order']);
+            $source = $_POST['source'];
+            $newIdx = (int) $_POST['newIdx'];
+            $orgIdx = (int) $_POST['orgIdx'];
 
             return $fx($sortOrders, $source, $newIdx, $orgIdx);
         });
     }
 
     /**
-     * return js action to retrieve order.
+     * Return js action to retrieve order.
      *
-     * @param array|null $uriOptions
+     * @param array|null $urlOptions
      *
-     * @return mixed
+     * @return JsChain
      */
-    public function jsGetOrders($uriOptions = null)
+    public function jsSendSortOrders($urlOptions = null)
     {
-        return $this->view->js()->atkJsSortable('getSortOrders', [$uriOptions]);
+        return $this->view->js()->atkJsSortable('sendSortOrders', [$urlOptions]);
     }
 }

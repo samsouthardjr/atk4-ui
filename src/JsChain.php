@@ -14,7 +14,7 @@ namespace Atk4\Ui;
  *
  * IMPORTANT: all methods in this class are pre-pended with '_', to avoid clashes with js-mapping.
  *
- *  @method Jquery redirect(...$args)
+ * @method Jquery redirect(...$args)
  */
 class JsChain extends JsExpression
 {
@@ -46,7 +46,7 @@ class JsChain extends JsExpression
      *
      * will map into:
      *
-     * $.foo().bar(1).baz.test({abc: 123]);
+     * $.foo().bar(1).baz.test({ abc: 123 ]);
      *
      * @var array
      */
@@ -59,6 +59,8 @@ class JsChain extends JsExpression
      */
     public function __construct($library = null)
     {
+        parent::__construct();
+
         if ($library) {
             $this->_library = $library;
         }
@@ -96,23 +98,7 @@ class JsChain extends JsExpression
     {
         $this->_chain[] = $property;
 
-        $res = $this; // TODO & before __get is needed for atk4/core PR 329, remove once PHP 8.1 support is dropped
-
-        return $res;
-    }
-
-    /**
-     * Convert reserved words or used methods into js calls, such as "_fn('class')" or "_fn('_fn')".
-     *
-     * @param string $name
-     * @param array  $args
-     *
-     * @return $this
-     */
-    public function _fn($name, $args = [])
-    {
-        // Wrapper for functions which use reserved words
-        return $this->__call($name, $args);
+        return $this;
     }
 
     /**
@@ -125,12 +111,12 @@ class JsChain extends JsExpression
     private function _renderArgs($args = [])
     {
         return '('
-            . implode(',', array_map(function ($arg) {
+            . implode(', ', array_map(function ($arg) {
                 if ($arg instanceof JsExpressionable) {
                     return $arg->jsRender();
                 }
 
-                return $this->_json_encode($arg);
+                return $this->_jsEncode($arg);
             }, $args))
             . ')';
     }

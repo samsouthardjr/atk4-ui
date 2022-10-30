@@ -14,30 +14,34 @@ use Atk4\Ui\Table;
  */
 class Checkbox extends Table\Column
 {
+    /** @var string */
     public $class;
 
     /**
      * Return action which will calculate and return array of all Checkbox IDs, e.g.
      *
      * [3, 5, 20]
+     *
+     * @return JsExpression
      */
     public function jsChecked()
     {
-        return new JsExpression(' $(' . $this->table->jsRender() . ').find(\'.checked.' . $this->class . '\').closest(\'tr\').map(function(){ '
+        return new JsExpression('$(' . $this->table->jsRender() . ').find(\'.checked.' . $this->class . '\').closest(\'tr\').map(function () { '
             . 'return $(this).data(\'id\'); }).get().join(\',\')');
     }
 
     protected function init(): void
     {
         parent::init();
+
         if (!$this->class) {
             $this->class = 'cb_' . $this->shortName;
         }
     }
 
-    public function getHeaderCellHtml(Field $field = null, $value = null)
+    public function getHeaderCellHtml(Field $field = null, $value = null): string
     {
-        if (isset($field)) {
+        if ($field !== null) {
             throw (new Exception('Checkbox must be placed in an empty column, don\'t specify any field'))
                 ->addMoreInfo('field', $field);
         }
@@ -46,8 +50,8 @@ class Checkbox extends Table\Column
         return parent::getHeaderCellHtml($field);
     }
 
-    public function getDataCellTemplate(Field $field = null)
+    public function getDataCellTemplate(Field $field = null): string
     {
-        return $this->getApp()->getTag('div', ['class' => 'ui checkbox ' . $this->class], [['input', ['type' => 'checkbox']]]);
+        return $this->getApp()->getTag('div', ['class' => 'ui checkbox ' . $this->class], [['input/', ['type' => 'checkbox']]]);
     }
 }

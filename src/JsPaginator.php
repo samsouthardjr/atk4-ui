@@ -20,7 +20,6 @@ class JsPaginator extends JsCallback
      *             Page request will be ask when container is scroll down and reach padding value.
      *  - initialPage: The initial page load.
      *                 The next page request will be initialPage + 1.
-     *  - allowJsEval: Whether or not you want the plugin to evaluate javascript return by server response.
      *  - hasFixTableHeader: boolean Should we use fixed table header.
      *  - tableContainerHeight: int Fixed height of table container in pixels.
      *  - tableHeaderColor: int|string HTML color for header.
@@ -38,24 +37,10 @@ class JsPaginator extends JsCallback
         }
 
         $this->view->js(true)->atkScroll([
-            'uri' => $this->getJsUrl(),
-            'uri_options' => $this->args,
+            'url' => $this->getJsUrl(),
+            'urlOptions' => $this->args,
             'options' => $this->options,
         ]);
-    }
-
-    /**
-     * Generate a js action that will set nextPage to atkScroll plugin.
-     *
-     * Method currently unused.
-     *
-     * @param int $page
-     *
-     * @return Jquery
-     */
-    public function jsNextPage($page)
-    {
-        return $this->view->js(true)->atkScroll('setNextPage', $page);
     }
 
     /**
@@ -81,7 +66,7 @@ class JsPaginator extends JsCallback
     /**
      * Callback when container has been scroll to bottom.
      */
-    public function onScroll(\Closure $fx)
+    public function onScroll(\Closure $fx): void
     {
         $page = $this->getPage();
         $this->set(function () use ($fx, $page) {

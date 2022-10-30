@@ -20,10 +20,10 @@ use Atk4\Ui\VirtualPage;
  */
 class VpExecutor extends View implements JsExecutorInterface
 {
+    use CommonExecutorTrait;
     use HookTrait;
     use StepExecutorTrait;
 
-    /** @const string */
     public const HOOK_STEP = self::class . '@onStep';
 
     /** @var VirtualPage */
@@ -38,15 +38,16 @@ class VpExecutor extends View implements JsExecutorInterface
     /** @var View */
     public $stepList;
 
-    /** @var string[] */
+    /** @var array<string, string> */
     public $stepListItems = ['args' => 'Fill argument(s)', 'fields' => 'Edit Record(s)', 'preview' => 'Preview', 'final' => 'Complete'];
 
     /** @var array */
-    public $cancelBtnSeed = [Button::class, ['Cancel', 'small left floated basic blue', 'icon' => 'left arrow']];
+    public $cancelBtnSeed = [Button::class, ['Cancel', 'class.small left floated basic blue' => true, 'icon' => 'left arrow']];
 
     protected function init(): void
     {
         parent::init();
+
         $this->initExecutor();
     }
 
@@ -73,16 +74,13 @@ class VpExecutor extends View implements JsExecutorInterface
      * to make sure that view id is properly set for loader and button
      * js action to run properly.
      */
-    public function afterActionInit(Model\UserAction $action): void
+    protected function afterActionInit(Model\UserAction $action): void
     {
         $this->loader = Loader::addTo($this->vp, ['ui' => $this->loaderUi, 'shim' => $this->loaderShim]);
         $this->actionData = $this->loader->jsGetStoreData()['session'];
     }
 
-    /**
-     * Will associate executor with the action.
-     */
-    public function setAction(Model\UserAction $action): self
+    public function setAction(Model\UserAction $action)
     {
         $this->action = $action;
         $this->afterActionInit($action);
@@ -112,19 +110,9 @@ class VpExecutor extends View implements JsExecutorInterface
      */
     public function executeModelAction(): void
     {
-        $id = $this->stickyGet($this->name);
-        if ($id && $this->action->appliesTo === Model\UserAction::APPLIES_TO_SINGLE_RECORD) {
-            $this->action = $this->action->getActionForEntity($this->action->getModel()->tryLoad($id));
-        } elseif (!$this->action->isOwnerEntity()
-                && in_array($this->action->appliesTo, [Model\UserAction::APPLIES_TO_NO_RECORDS, Model\UserAction::APPLIES_TO_SINGLE_RECORD], true)) {
-            $this->action = $this->action->getActionForEntity($this->action->getModel()->createEntity());
-        }
+        $this->action = $this->executeModelActionLoad($this->action);
 
-        if ($this->action->fields === true) {
-            $this->action->fields = array_keys($this->action->getModel()->getFields('editable'));
-        }
-
-        $this->vp->set(function ($vPage) {
+        $this->vp->set(function () {
             $this->jsSetBtnState($this->loader, $this->step);
             $this->jsSetListState($this->loader, $this->step);
             $this->runSteps();
@@ -147,7 +135,7 @@ class VpExecutor extends View implements JsExecutorInterface
         $view->js(true, $this->stepList->js()->find('.item')->removeClass('active'));
         foreach ($this->steps as $step) {
             if ($step === $currentStep) {
-                $view->js(true, $this->stepList->js()->find("[data-list-item='{$step}']")->addClass('active'));
+                $view->js(true, $this->stepList->js()->find('[data-list-item="' . $step . '"]')->addClass('active'));
             }
         }
     }
@@ -160,14 +148,13 @@ class VpExecutor extends View implements JsExecutorInterface
      */
     protected function jsGetExecute($obj, $id): array
     {
-        // @phpstan-ignore-next-line
         $success = $this->jsSuccess instanceof \Closure
             ? ($this->jsSuccess)($this, $this->action->getModel(), $id, $obj)
             : $this->jsSuccess;
 
         return [
-            $this->hook(BasicExecutor::HOOK_AFTER_EXECUTE, [$obj, $id]) ?:
-                $success ?: new JsToast('Success' . (is_string($obj) ? (': ' . $obj) : '')),
+            $this->hook(BasicExecutor::HOOK_AFTER_EXECUTE, [$obj, $id]) // @phpstan-ignore-line
+                ?: ($success ?? new JsToast('Success' . (is_string($obj) ? (': ' . $obj) : ''))),
             $this->loader->jsClearStoreData(true),
             (new JsChain('atk.utils'))->redirect($this->url()),
         ];

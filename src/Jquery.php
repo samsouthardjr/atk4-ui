@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Atk4\Ui;
 
 /**
- * Implements mapper for jQuery library. Following mappings are just to keep PhpStorm happy.
+ * Implements mapper for jQuery library. Following mappings are just to keep phpstan/PhpStorm happy.
  *
  * @method Jquery accordion(...$args)
  * @method Jquery addClass(...$args)
@@ -58,15 +58,17 @@ namespace Atk4\Ui;
  * @method Jquery trigger(...$args)
  * @method Jquery val(...$args)
  *
- * For SemanticUI:
+ * For Fomantic-UI:
  * @method Jquery api(...$args)
  * @method Jquery form(...$args)
  * @method Jquery visibility(...$args)
  *
- * For Atk4UI:
+ * For atk4/ui JS (defined in js/src/plugin.js):
  * @method Jquery atkAjaxec(...$args)
  * @method Jquery atkColumnResizer(...$args)
  * @method Jquery atkConditionalForm(...$args)
+ * @method Jquery atkConfirm(...$args)
+ * @method Jquery atkCreateModal(...$args)
  * @method Jquery atkFileUpload(...$args)
  * @method Jquery atkJsSearch(...$args)
  * @method Jquery atkJsSortable(...$args)

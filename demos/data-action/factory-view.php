@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atk4\Ui\Demos;
 
+use Atk4\Data\Model;
 use Atk4\Ui\Button;
 use Atk4\Ui\Card;
 use Atk4\Ui\Header;
@@ -13,15 +14,15 @@ use Atk4\Ui\View;
 /** @var \Atk4\Ui\App $app */
 require_once __DIR__ . '/../init-app.php';
 
-Button::addTo($app, ['Executor Factory in App instance', 'small left floated basic blue', 'icon' => 'left arrow'])
+Button::addTo($app, ['Executor Factory in App instance', 'class.small left floated basic blue' => true, 'icon' => 'left arrow'])
     ->link(['factory']);
 View::addTo($app, ['ui' => 'ui clearing divider']);
 
 // Overriding basic ExecutorFactory in order to change Card button.
 $myFactory = AnonymousClassNameCache::get_class(fn () => new class() extends ExecutorFactory {
-    public const BUTTON_PRIMARY_COLOR = 'green';
+    public $buttonPrimaryColor = 'green';
 
-    protected $actionIcon = [
+    protected array $actionIcon = [
         'callback' => 'sync',
         'preview' => 'eye',
         'edit_argument' => 'user edit',
@@ -40,7 +41,10 @@ $myFactory = AnonymousClassNameCache::get_class(fn () => new class() extends Exe
         );
     }
 
-    protected function getCardButton($action, $type)
+    /**
+     * @return array
+     */
+    protected function getCardButton(Model\UserAction $action)
     {
         return [Button::class, 'icon' => $this->actionIcon[$action->shortName]];
     }

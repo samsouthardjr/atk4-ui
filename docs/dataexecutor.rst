@@ -98,22 +98,19 @@ Confirmation Executor
 
 Like ModalExecutor, Confirmation executor is also based on a Modal view. It allow to display UserAction::confirmation property prior to
 execute the action. Since UserAction::confirmation property may be set with a Closure function, this give a chance to
-return specific record information to be display to user prior to execute the action.
+return specific record information to be displayed to user prior to execute the action.
 
 Here is an example of an user action returning specific record information in the confirmation message::
 
-        $country->addUserAction(
-            'delete_country',
-            [
-                'caption' => 'Delete',
-                'description' => 'Delete Country',
-                'ui' => ['executor' => [\Atk4\Ui\UserAction\ConfirmationExecutor::class]],
-                'confirmation' => function ($action) {
-                    return 'Are you sure you want to delete this country: $action->getModel()->getTitle();
-                },
-                'callback' => 'delete',
-            ]
-        );
+        $country->addUserAction('delete_country', [
+            'caption' => 'Delete',
+            'description' => 'Delete Country',
+            'ui' => ['executor' => [\Atk4\Ui\UserAction\ConfirmationExecutor::class]],
+            'confirmation' => function (Model\UserAction $action) {
+                return 'Are you sure you want to delete this country: $action->getModel()->getTitle();
+            },
+            'callback' => 'delete',
+        ]);
 
 The modal title default is set from the UserAction::getDescription() method but can be override using the
 Modal::$title property.
@@ -127,7 +124,7 @@ Toast messages or removing a row within a Crud table.
 
 Some Ui View component, like Crud for example, will also set javascript action to return based on the UserAction::modifier property.
 For example it the modifier property is set to MODIFIER_DELETE then Crud will know it has to delete a table row on the
-other hand, if MODIFIER_UPDATE is set, then Table need to be reload.
+other hand, if MODIFIER_UPDATE is set, then Table needs to be reloaded.
 
 The Executor Factory
 ====================
@@ -157,8 +154,8 @@ If no executor type is found, then the create method will determine one, based o
 - if action does not use any of the above properties, then, the executor create is based on JS_EXECUTOR type.
 
 The create method also add the executor to the View passed as argument. However, note that when an executor View parent
-class is of type Modal, then it will be attached to the $app->html view instead. This is because Modal view in ui need
-to be add to $app->html view in order to work correctly on reload.
+class is of type Modal, then it will be attached to the $app->html view instead. This is because Modal view in ui needs
+to be added to $app->html view in order to work correctly on reload.
 
 
 Changing or adding Executor type
@@ -166,18 +163,19 @@ Changing or adding Executor type
 
 Existing executor type can be change or added globally for all your user model actions via this method::
 
-    ExecutorFactory::registerTypeExecutor(string $type, $seed)
+    ExecutorFactory::registerTypeExecutor(string $type, array $seed): void
 
 This will set a type to your own executor class. For example, a custom executor class can be set as a MODAL_EXECUTOR type
 and all model user action that use this type will be execute using this custom executor instance.
 
 Type may also be registered per specific model user action via this method::
 
-    ExecutorFactory::registerExecutor(UserAction $action, array $seed)
+    ExecutorFactory::registerExecutor(UserAction $action, array $seed): void
 
-For example, you need a custom executor to be create when using a specific model user action::
+For example, you need a custom executor to be created when using a specific model user action::
 
-    class MySpecialFormExecutor extends \Atk4\Ui\UserAction\ModalExecutor {
+    class MySpecialFormExecutor extends \Atk4\Ui\UserAction\ModalExecutor
+    {
         public function addFormTo(\Atk4\Ui\View $view): \Atk4\Ui\Form
         {
             $myView = MySpecialView::addTo($view);
@@ -207,7 +205,7 @@ is returned.
 
 As per execucor type, it is also possible to add or change already register type via the registerTrigger method::
 
-    ExecutorFactory::registerTrigger(string $type, $seed, UserAction $action, bool $isSpecific = false)
+    ExecutorFactory::registerTrigger(string $type, $seed, UserAction $action, bool $isSpecific = false): void
 
 Again, the type can be apply globally to all action using the same name or specifically for a certain model/action.
 
@@ -233,8 +231,8 @@ Example of changing button for Card, Crud and Modal executor globally within you
     {
         protected static $actionTriggerSeed = [
             self::MODAL_BUTTON => [
-                'edit' => [Button::class, 'Save', 'green'],
-                'add' => [Button::class, 'Save', 'green'],
+                'edit' => [Button::class, 'Save', 'class.green' => true],
+                'add' => [Button::class, 'Save', 'class.green' => true],
             ],
             self::TABLE_BUTTON => [
                 'edit' => [Button::class, null, 'icon' => 'pencil'],

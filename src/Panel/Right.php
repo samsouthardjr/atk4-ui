@@ -1,29 +1,30 @@
 <?php
 
 declare(strict_types=1);
-/**
- * Right Panel implementation.
- * Opening, closing and loading Panel content is manage
- * via the js panel service.
- *
- * Content is loaded via a LoadableContent View.
- * This view must implement a callback for content to be add via the callback function.
- */
 
 namespace Atk4\Ui\Panel;
 
 use Atk4\Core\Factory;
 use Atk4\Ui\Button;
 use Atk4\Ui\Jquery;
+use Atk4\Ui\JsChain;
 use Atk4\Ui\JsExpression;
 use Atk4\Ui\Modal;
 use Atk4\Ui\View;
 
+/**
+ * Right Panel implementation.
+ * Opening, closing and loading Panel content is manage
+ * via the js panel service.
+ *
+ * Content is loaded via a LoadableContent View.
+ * This view must implement a callback for content to be added via the callback function.
+ */
 class Right extends View implements Loadable
 {
     public $defaultTemplate = 'panel/right.html';
 
-    /** @var Modal */
+    /** @var Modal|null */
     public $closeModal;
     /** @var array Confirmation Modal default */
     public $defaultModal = [Modal::class, 'class' => ['mini']];
@@ -50,14 +51,15 @@ class Right extends View implements Loadable
     public $warningTrigger = 'atk-visible';
 
     /** @var string the warning icon class */
-    public $warningIcon = 'icon exclamation circle';
+    public $warningIcon = 'exclamation circle';
 
     /** @var string the close icon class */
-    public $closeIcon = 'icon times';
+    public $closeIcon = 'times';
 
     protected function init(): void
     {
         parent::init();
+
         if ($this->dynamic) {
             $this->addDynamicContent(Factory::factory($this->dynamic));
         }
@@ -68,7 +70,7 @@ class Right extends View implements Loadable
     /**
      * Set the dynamic content of this view.
      */
-    public function addDynamicContent(LoadableContent $content)
+    public function addDynamicContent(LoadableContent $content): void
     {
         $this->dynamicContent = Content::addTo($this, [], ['LoadContent']);
     }
@@ -84,9 +86,9 @@ class Right extends View implements Loadable
     /**
      * Return js expression in order to retrieve panelService.
      */
-    public function service(): JsExpression
+    public function service(): JsChain
     {
-        return new \Atk4\Ui\JsChain('atk.panelService');
+        return new JsChain('atk.panelService');
     }
 
     /**
@@ -129,7 +131,7 @@ class Right extends View implements Loadable
      * js flyoutService will prevent closing of Flyout if a confirmation modal
      * is attached to it and flyoutService detect that the current open flyoutContent has warning on.
      */
-    public function addConfirmation(string $msg, string $title = 'Closing panel!', string $okBtn = null, string $cancelBtn = null)
+    public function addConfirmation(string $msg, string $title = 'Closing panel!', string $okBtn = null, string $cancelBtn = null): void
     {
         if (!$okBtn) {
             $okBtn = (new Button(['Ok']))->addClass('ok');
@@ -150,7 +152,7 @@ class Right extends View implements Loadable
      * Callback to execute when panel open if dynamic content is set.
      * Differ the callback execution to the FlyoutContent.
      */
-    public function onOpen(\Closure $callback)
+    public function onOpen(\Closure $callback): void
     {
         $this->getDynamicContent()->onLoad($callback);
     }

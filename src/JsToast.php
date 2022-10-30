@@ -7,20 +7,22 @@ namespace Atk4\Ui;
 use Atk4\Core\DiContainerTrait;
 
 /**
- * Class JsToast
- * Generate a Fomantic-ui toast module command in js.
+ * Generate a Fomantic-UI toast module command in js.
  *  $('body').toast({options}).
  */
 class JsToast implements JsExpressionable
 {
     use DiContainerTrait;
 
-    /** @var array|string Various setting options as per Fomantic ui toast module. */
-    public $settings = [];
+    /** @var array Various setting options as per Fomantic-UI toast module. */
+    public array $settings = [];
 
     /** @var string default css class for toast */
     public $defaultCss = 'success';
 
+    /**
+     * @param array|string $settings
+     */
     public function __construct($settings = null)
     {
         if (is_array($settings)) {
@@ -37,6 +39,8 @@ class JsToast implements JsExpressionable
 
     /**
      * Set message to display in Toast.
+     *
+     * @param string $msg
      */
     public function setMessage($msg): self
     {

@@ -7,25 +7,19 @@
  * on env variable.
  *
  * Using Development
- *  - set webpack config mode to development
- *  - devtools will use source-map under atk name;
+ * - set webpack config mode to development
  *
  * Using Production
- *  - set webpack config mode to production
- *  - change name of output file by adding .min
+ * - set webpack config mode to production
+ * - change name of output file by adding .min
  *
  * Module export will output default value
- * using libraryExport : 'default' for backward
+ * using libraryExport: 'default' for backward
  * compatibility with previous release of the library.
- *
- * @type {webpack}
  */
-const webpack = require('webpack');
 const path = require('path');
-// VUe file loader.
 const { VueLoaderPlugin } = require('vue-loader');
 const TerserPlugin = require('terser-webpack-plugin');
-const packageVersion = require('./package.json').version;
 
 module.exports = (env) => {
     // determine which mode
@@ -37,18 +31,18 @@ module.exports = (env) => {
 
     const prodPerformance = {
         hints: false,
-        maxEntrypointSize: 640000,
-        maxAssetSize: 640000,
+        maxEntrypointSize: 640 * 1024,
+        maxAssetSize: 640 * 1024,
     };
 
     return {
-        entry: { [filename]: srcDir + '/agile-toolkit-ui.js' },
+        entry: { [filename]: srcDir + '/main.js' },
         mode: isProduction ? 'production' : 'development',
-        devtool: isProduction ? false : 'source-map',
+        devtool: 'source-map',
         performance: isProduction ? prodPerformance : {},
         output: {
             path: publicDir,
-            filename: isProduction ? '[name].min.js' : '[name].js',
+            filename: isProduction ? 'js/[name].min.js' : 'js/[name].js',
             library: libraryName,
             libraryTarget: 'umd',
             libraryExport: 'default',
@@ -57,9 +51,21 @@ module.exports = (env) => {
         optimization: {
             splitChunks: {
                 cacheGroups: {
+                    vendorVueFlatpickr: {
+                        test: /[\\/]node_modules[\\/](flatpickr|vue-flatpickr-component)[\\/]/,
+                        name: 'vendor-vue-flatpickr',
+                    },
+                    vendorVueQueryBuilder: {
+                        test: /[\\/]node_modules[\\/]vue-query-builder[\\/]/,
+                        name: 'vendor-vue-query-builder',
+                    },
+                    vendorVue: {
+                        test: /[\\/]node_modules[\\/](?!(vue-flatpickr-component|vue-query-builder)[\\/])([^\\/]+[-.])?vue([-.][^\\/]+)?[\\/]/,
+                        name: 'vendor-vue',
+                    },
                     vendor: {
-                        test: /[\\/]node_modules[\\/]/,
-                        name: 'vendors',
+                        test: /[\\/]node_modules[\\/](?!(([^\\/]+[-.])?vue([-.][^\\/]+)?|flatpickr)[\\/])/,
+                        name: 'vendor',
                     },
                 },
             },
@@ -77,17 +83,22 @@ module.exports = (env) => {
         module: {
             rules: [
                 {
-                    test: /(\.jsx|\.js)$/,
+                    test: /(\.js|\.jsx)$/,
+                    enforce: 'pre',
+                    loader: 'source-map-loader',
+                },
+                {
+                    test: /(\.js|\.jsx)$/,
                     loader: 'babel-loader',
-                    exclude: /(node_modules|bower_components)/,
+                    exclude: /node_modules/,
                 },
                 // load .vue file
                 {
                     test: /\.vue$/,
                     loader: 'vue-loader',
                 },
-                // this will apply to both plain `.css` files
-                // AND `<style>` blocks in `.vue` files
+                // this will apply to both plain .css files
+                // AND <style> blocks in .vue files
                 {
                     test: /\.css$/,
                     use: [
@@ -98,11 +109,14 @@ module.exports = (env) => {
                 },
             ],
         },
-        externals: { jquery: 'jQuery', draggable: 'Draggable' },
+        externals: { 'external/jquery': 'jQuery' },
         resolve: {
-            alias: { vue$: 'vue/dist/vue.esm.js' },
+            alias: {
+                atk$: srcDir + '/setup-atk.js',
+                vue$: 'vue/dist/vue.esm.js',
+            },
             modules: [
-                path.resolve(__dirname, 'src/'),
+                srcDir,
                 'node_modules',
             ],
             extensions: [
@@ -111,9 +125,6 @@ module.exports = (env) => {
             ],
         },
         plugins: [
-            new webpack.DefinePlugin({
-                _ATKVERSION_: JSON.stringify(packageVersion),
-            }),
             new VueLoaderPlugin(),
         ],
     };

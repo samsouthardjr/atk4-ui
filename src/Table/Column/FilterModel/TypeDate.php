@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Atk4\Ui\Table\Column\FilterModel;
 
 use Atk4\Data\Model;
+use Atk4\Ui\Form;
 use Atk4\Ui\Table\Column;
 use DateTime;
 
@@ -60,7 +61,7 @@ class TypeDate extends Column\FilterModel
         $this->addField('exact_date', ['type' => 'date', 'ui' => ['caption' => '']]);
 
         // The integer field to generate a date when x day selector is used.
-        $this->addField('number_days', ['ui' => ['caption' => '', 'form' => [\Atk4\Ui\Form\Control\Line::class, 'inputType' => 'number']]]);
+        $this->addField('number_days', ['ui' => ['caption' => '', 'form' => [Form\Control\Line::class, 'inputType' => 'number']]]);
     }
 
     public function setConditionForModel(Model $model)
@@ -80,11 +81,11 @@ class TypeDate extends Column\FilterModel
                     $d1 = $this->getDate($filter['value']);
                     $d2 = $this->getDate($filter['range']);
                     if ($d2 >= $d1) {
-                        $value = $model->persistence->typecastSaveField($model->getField($filter['name']), $d1);
-                        $value2 = $model->persistence->typecastSaveField($model->getField($filter['name']), $d2);
+                        $value = $model->getPersistence()->typecastSaveField($model->getField($filter['name']), $d1);
+                        $value2 = $model->getPersistence()->typecastSaveField($model->getField($filter['name']), $d2);
                     } else {
-                        $value = $model->persistence->typecastSaveField($model->getField($filter['name']), $d2);
-                        $value2 = $model->persistence->typecastSaveField($model->getField($filter['name']), $d1);
+                        $value = $model->getPersistence()->typecastSaveField($model->getField($filter['name']), $d2);
+                        $value2 = $model->getPersistence()->typecastSaveField($model->getField($filter['name']), $d1);
                     }
                     $model->addCondition($model->expr('[field] between [value] and [value2]', ['field' => $model->getField($filter['name']), 'value' => $value, 'value2' => $value2]));
 
@@ -124,14 +125,12 @@ class TypeDate extends Column\FilterModel
                 break;
             default:
                 $date = $dateModifier ? new DateTime($dateModifier) : null;
-
-                break;
         }
 
         return $date;
     }
 
-    public function getFormDisplayRules()
+    public function getFormDisplayRules(): array
     {
         return [
             'range' => ['op' => 'isExactly[within]'],

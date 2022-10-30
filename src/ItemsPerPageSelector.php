@@ -47,21 +47,11 @@ class ItemsPerPageSelector extends View
     }
 
     /**
-     * Set label using js action.
-     *
-     * @return Jquery
-     */
-    public function jsSetLabel($ipp)
-    {
-        return $this->js(true)->html($ipp);
-    }
-
-    /**
      * Run callback when an item is select via dropdown menu.
-     * The callback should return a View to be reload after an item
+     * The callback should return a View to be reloaded after an item
      * has been select.
      */
-    public function onPageLengthSelect(\Closure $fx)
+    public function onPageLengthSelect(\Closure $fx): void
     {
         $this->cb->set(function () use ($fx) {
             $ipp = isset($_GET['ipp']) ? (int) $_GET['ipp'] : null;
@@ -80,22 +70,22 @@ class ItemsPerPageSelector extends View
         foreach ($this->pageLengthItems as $key => $item) {
             $menuItems[] = ['name' => $item, 'value' => $item];
         }
-        // set semantic-ui dropdown onChange function.
-        $function = 'function(value, text, item){
-                            if (value === undefined || value === \'\' || value === null) return;
-                            $(this)
-                            .api({
-                                on:\'now\',
-                                url:\'' . $this->cb->getUrl() . '\',
-                                data:{ipp:value}
-                                }
-                            );
-                     }';
+        // set Fomantic-UI dropdown onChange function.
+        $function = 'function (value, text, item) {
+            if (value === undefined || value === \'\' || value === null) return;
+            $(this)
+            .api({
+                on:\'now\',
+                url:\'' . $this->cb->getUrl() . '\',
+                data:{ipp:value}
+            });
+        }';
 
         $this->js(true)->dropdown([
             'values' => $menuItems,
             'onChange' => new JsExpression($function),
         ]);
+
         parent::renderView();
     }
 }

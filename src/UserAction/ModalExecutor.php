@@ -8,6 +8,7 @@ use Atk4\Core\HookTrait;
 use Atk4\Data\Model;
 use Atk4\Ui\Exception;
 use Atk4\Ui\JsToast;
+use Atk4\Ui\Loader;
 use Atk4\Ui\Modal;
 use Atk4\Ui\View;
 
@@ -30,21 +31,21 @@ use Atk4\Ui\View;
  */
 class ModalExecutor extends Modal implements JsExecutorInterface
 {
+    use CommonExecutorTrait;
     use HookTrait;
     use StepExecutorTrait;
 
-    /** @const string */
     public const HOOK_STEP = self::class . '@onStep';
 
     protected function init(): void
     {
         parent::init();
+
         $this->initExecutor();
     }
 
     protected function initExecutor(): void
     {
-        $this->observeChanges();
     }
 
     public function getAction(): Model\UserAction
@@ -58,20 +59,15 @@ class ModalExecutor extends Modal implements JsExecutorInterface
      * to make sure that view id is properly set for loader and button
      * js action to run properly.
      */
-    public function afterActionInit(Model\UserAction $action): void
+    protected function afterActionInit(Model\UserAction $action): void
     {
-        $this->loader = \Atk4\Ui\Loader::addTo($this, ['ui' => $this->loaderUi, 'shim' => $this->loaderShim]);
+        $this->loader = Loader::addTo($this, ['ui' => $this->loaderUi, 'shim' => $this->loaderShim]);
         $this->loader->loadEvent = false;
         $this->loader->addClass('atk-hide-loading-content');
         $this->actionData = $this->loader->jsGetStoreData()['session'];
     }
 
-    /**
-     * Will associate executor with the action.
-     *
-     * @return ModalExecutor
-     */
-    public function setAction(Model\UserAction $action): View
+    public function setAction(Model\UserAction $action)
     {
         $this->action = $action;
         $this->afterActionInit($action);
@@ -94,17 +90,8 @@ class ModalExecutor extends Modal implements JsExecutorInterface
      */
     public function executeModelAction(): void
     {
-        $id = $this->stickyGet($this->name);
-        if ($id && $this->action->appliesTo === Model\UserAction::APPLIES_TO_SINGLE_RECORD) {
-            $this->action = $this->action->getActionForEntity($this->action->getModel()->tryLoad($id));
-        } elseif (!$this->action->isOwnerEntity()
-                && in_array($this->action->appliesTo, [Model\UserAction::APPLIES_TO_NO_RECORDS, Model\UserAction::APPLIES_TO_SINGLE_RECORD], true)) {
-            $this->action = $this->action->getActionForEntity($this->action->getModel()->createEntity());
-        }
+        $this->action = $this->executeModelActionLoad($this->action);
 
-        if ($this->action->fields === true) {
-            $this->action->fields = array_keys($this->action->getModel()->getFields('editable'));
-        }
         // Add buttons to modal for next and previous.
         $this->addButtonAction($this->createButtonBar($this->action));
         $this->jsSetBtnState($this->loader, $this->step);
@@ -126,11 +113,7 @@ class ModalExecutor extends Modal implements JsExecutorInterface
             // use modal for stepping action.
             $urlArgs['step'] = $this->step;
             if ($this->action->enabled) {
-                if ($selector) {
-                    $view->on($when, $selector, [$this->show(), $this->loader->jsLoad($urlArgs, ['method' => 'post'])]);
-                } else {
-                    $view->on($when, [$this->show(), $this->loader->jsLoad($urlArgs, ['method' => 'post'])]);
-                }
+                $view->on($when, $selector, [$this->jsShow(), $this->loader->jsLoad($urlArgs, ['method' => 'post'])]);
             } else {
                 $view->addClass('disabled');
             }
@@ -150,7 +133,7 @@ class ModalExecutor extends Modal implements JsExecutorInterface
 
         $urlArgs['step'] = $this->step;
 
-        return [$this->show(), $this->loader->jsLoad($urlArgs, ['method' => 'post'])];
+        return [$this->jsShow(), $this->loader->jsLoad($urlArgs, ['method' => 'post'])];
     }
 
     /**
@@ -161,15 +144,14 @@ class ModalExecutor extends Modal implements JsExecutorInterface
      */
     protected function jsGetExecute($obj, $id): array
     {
-        // @phpstan-ignore-next-line
         $success = $this->jsSuccess instanceof \Closure
             ? ($this->jsSuccess)($this, $this->action->getModel(), $id, $obj)
             : $this->jsSuccess;
 
         return [
-            $this->hide(),
-            $this->hook(BasicExecutor::HOOK_AFTER_EXECUTE, [$obj, $id]) ?:
-            $success ?: new JsToast('Success' . (is_string($obj) ? (': ' . $obj) : '')),
+            $this->jsHide(),
+            $this->hook(BasicExecutor::HOOK_AFTER_EXECUTE, [$obj, $id]) // @phpstan-ignore-line
+                ?: ($success ?? new JsToast('Success' . (is_string($obj) ? (': ' . $obj) : ''))),
             $this->loader->jsClearStoreData(true),
         ];
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atk4\Ui\Table\Column;
 
+use Atk4\Data\Field;
 use Atk4\Data\Model;
 use Atk4\Ui\HtmlTemplate;
 use Atk4\Ui\Table;
@@ -17,7 +18,7 @@ use Atk4\Ui\Table;
  * or
  *   new Link(['order', 'id' ]);
  * or
- *   new Link([['order', 'x' => $myval], 'id' ]);.
+ *   new Link([['order', 'x' => $myval], 'id']);.
  */
 class Link extends Table\Column
 {
@@ -37,6 +38,8 @@ class Link extends Table\Column
      * $url = $app->url(['example', 'type' => '123']);
      *
      * In addition to abpove "args" refer to values picked up from a current row.
+     *
+     * @var string|array|null
      */
     public $page;
 
@@ -53,11 +56,13 @@ class Link extends Table\Column
      *
      * You can also pass non-key arguments ['id', 'title'] and they will be added up
      * as ?id=4&title=John%20Smith
+     *
+     * @var array
      */
     public $args = [];
 
     /** @var bool use value as label of the link */
-    public $use_label = true;
+    public $useLabel = true;
 
     /** @var string|null set element class. */
     public $class;
@@ -66,39 +71,32 @@ class Link extends Table\Column
     public $icon;
 
     /**
-     * set html5 target attribute in tag
+     * Set html5 target attribute in tag
      * possible values : _blank | _parent | _self | _top | frame#name.
      *
-     * @var string!null
+     * @var string|null
      */
     public $target;
 
     /** @var bool add download in the tag to force download from the url. */
-    public $force_download = false;
+    public $forceDownload = false;
 
-    public function __construct($page = [], $args = [], $defaults = [])
+    /**
+     * @param string|array $page
+     */
+    public function __construct($page = [], array $args = [], array $defaults = [])
     {
         if (is_array($page)) {
             $page = ['page' => $page];
-        } elseif (is_string($page)) {
+        } else {
             $page = ['url' => $page];
         }
+
         if ($args) {
             $page['args'] = $args;
         }
+
         parent::__construct(array_replace($defaults, $page));
-    }
-
-    public function setDefaults(array $properties, bool $passively = false)
-    {
-        if (isset($properties[0])) {
-            $this->page = array_shift($properties);
-        }
-        if (isset($properties[0])) {
-            $this->args = array_shift($properties);
-        }
-
-        return parent::setDefaults($properties);
     }
 
     protected function init(): void
@@ -113,39 +111,44 @@ class Link extends Table\Column
         }
     }
 
-    public function getDataCellTemplate(\Atk4\Data\Field $field = null)
+    public function getDataCellTemplate(Field $field = null): string
     {
-        $download = $this->force_download ? ' download="true" ' : '';
-        $external = $this->target ? ' target="' . $this->target . '" ' : '';
+        $attr = ['href' => '{$c_' . $this->shortName . '}'];
+
+        if ($this->forceDownload) {
+            $attr['download'] = 'true';
+        }
+
+        if ($this->target) {
+            $attr['target'] = $this->target;
+        }
 
         $icon = '';
-
         if ($this->icon) {
-            $icon = '<i class="icon ' . $this->icon . '"></i>';
+            $icon = $this->getApp()->getTag('i', ['class' => $this->icon . ' icon'], '');
         }
 
         $label = '';
-        if ($this->use_label) {
+        if ($this->useLabel) {
             $label = $field ? ('{$' . $field->shortName . '}') : '[Link]';
         }
 
-        $class = '';
         if ($this->class) {
-            $class = ' class="' . $this->class . '" ';
+            $attr['class'] = $this->class;
         }
 
-        return '<a href="{$c_' . $this->shortName . '}"' . $external . $class . $download . '>' . $icon . '' . $label . '</a>';
+        return $this->getApp()->getTag('a', $attr, [$icon, $label]); // TODO $label is not HTML encoded
     }
 
-    public function getHtmlTags(Model $row, $field)
+    public function getHtmlTags(Model $row, ?Field $field): array
     {
         if ($this->url) {
-            $rowValues = $this->getApp()->ui_persistence->typecastSaveRow($row, $row->get());
+            $rowValues = $this->getApp()->uiPersistence->typecastSaveRow($row, $row->get());
 
             return ['c_' . $this->shortName => $this->url->set($rowValues)->renderToHtml()];
         }
 
-        $p = $this->page ?: [];
+        $p = $this->page ?? [];
 
         foreach ($this->args as $key => $val) {
             if (is_numeric($key)) {

@@ -9,6 +9,9 @@ use Atk4\Data\Model;
 use Atk4\Data\Model\EntityFieldPair;
 use Atk4\Ui\Exception;
 use Atk4\Ui\Form;
+use Atk4\Ui\Jquery;
+use Atk4\Ui\JsExpression;
+use Atk4\Ui\JsExpressionable;
 use Atk4\Ui\View;
 
 /**
@@ -16,21 +19,26 @@ use Atk4\Ui\View;
  */
 class Control extends View
 {
-    /** @var Form to which this field belongs */
+    /** @var Form|null to which this field belongs */
     public $form;
 
-    /** @var EntityFieldPair<Model, Field> */
+    /**
+     * @var EntityFieldPair|null
+     *
+     * @phpstan-var EntityFieldPair<Model, Field>|null
+     */
     public $entityField;
 
     /** @var string */
     public $controlClass = '';
 
     /** @var bool Whether you need this field to be rendered wrap in a form layout or as his */
-    public $layoutWrap = true;
+    public bool $layoutWrap = true;
 
     /** @var bool rendered or not input label in generic Form\Layout template. */
     public $renderLabel = true;
 
+    /** @var string */
     public $width;
 
     /**
@@ -41,7 +49,7 @@ class Control extends View
      *
      * Caption is usually specified by a model.
      *
-     * @var string
+     * @var string|null
      */
     public $caption;
 
@@ -49,25 +57,21 @@ class Control extends View
      * Placed as a pointing label below the field. This only works when Form\Control appears in a form. You can also
      * set this to object, such as \Atk4\Ui\Text otherwise HTML characters are escaped.
      *
-     * @var string|\Atk4\Ui\View|array
+     * @var string|View|array
      */
     public $hint;
 
     /**
      * Is input field disabled?
      * Disabled input fields are not editable and will not be submitted.
-     *
-     * @var bool
      */
-    public $disabled = false;
+    public bool $disabled = false;
 
     /**
      * Is input field read only?
      * Read only input fields are not editable, but will be submitted.
-     *
-     * @var bool
      */
-    public $readonly = false;
+    public bool $readOnly = false;
 
     protected function init(): void
     {
@@ -121,10 +125,9 @@ class Control extends View
     {
         $output = parent::renderTemplateToHtml($region);
 
-        /** @var Form|null $form */
-        $form = $this->getClosestOwner($this, Form::class);
+        $form = $this->getClosestOwner(Form::class);
 
-        return $form !== null ? $form->fixFormInRenderedHtml($output) : $output;
+        return $form !== null ? $form->fixOwningFormAttrInRenderedHtml($output) : $output;
     }
 
     /**
@@ -139,25 +142,24 @@ class Control extends View
      * Otherwise, change handler will not be propagate to all handlers.
      *
      * Examples:
-     * $control->onChange('console.log("changed")');
-     * $control->onChange(new \Atk4\Ui\JsExpression('console.log("changed")'));
-     * $control->onChange('$(this).parents(".form").form("submit")');
+     * $control->onChange('console.log(\'changed\')');
+     * $control->onChange(new JsExpression('console.log(\'changed\')'));
+     * $control->onChange('$(this).parents(\'.form\').form(\'submit\')');
      *
-     * @param string|\Atk4\Ui\JsExpression|array|\Closure $expr
-     * @param array|bool                                  $default
+     * @param string|JsExpression|array|\Closure $expr
+     * @param array|bool                         $defaults
      */
-    public function onChange($expr, $default = [])
+    public function onChange($expr, $defaults = []): void
     {
         if (is_string($expr)) {
-            $expr = new \Atk4\Ui\JsExpression($expr);
+            $expr = new JsExpression($expr);
         }
 
-        if (is_bool($default)) {
-            $default['preventDefault'] = $default;
-            $default['stopPropagation'] = $default;
+        if (is_bool($defaults)) {
+            $defaults = $defaults ? [] : ['preventDefault' => false, 'stopPropagation' => false];
         }
 
-        $this->on('change', '#' . $this->name . '_input', $expr, $default);
+        $this->on('change', '#' . $this->name . '_input', $expr, $defaults);
     }
 
     /**
@@ -166,18 +168,13 @@ class Control extends View
      *
      * $field->jsInput(true)->val(123);
      *
-     * @return \Atk4\Ui\Jquery
+     * @param bool|string      $when
+     * @param JsExpressionable $action
+     *
+     * @return Jquery
      */
-    public function jsInput($when = null, $action = null)
+    public function jsInput($when = false, $action = null)
     {
         return $this->js($when, $action, '#' . $this->name . '_input');
-    }
-
-    /**
-     * @return string
-     */
-    public function getControlClass()
-    {
-        return $this->controlClass;
     }
 }

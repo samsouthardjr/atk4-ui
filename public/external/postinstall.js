@@ -1,5 +1,4 @@
 const fs = require('fs');
-const https = require('https');
 const path = require('path');
 
 const walkFilesSync = function (f, callback) {
@@ -29,33 +28,18 @@ if (fs.existsSync(path.join(__dirname, 'node_modules/jquery'))) {
     fs.rmdirSync(path.join(__dirname, 'node_modules'));
 }
 
-// copy non-minified JS to make it available from the same directory as the minified version
-if (fs.existsSync(path.join(__dirname, 'form-serializer/jquery.serialize-object.js'))) {
-    fs.renameSync(
-        path.join(__dirname, 'form-serializer/jquery.serialize-object.js'),
-        path.join(__dirname, 'form-serializer/dist/jquery.serialize-object.js'),
-    );
-}
-
-// download Fomantic-UI license
-// remove once https://github.com/fomantic/Fomantic-UI/issues/2356 is fixed and v2.9.0 is released
-https.get(
-    'https://raw.githubusercontent.com/fomantic/Fomantic-UI/2.8.8/LICENSE.md',
-    (response) => response.pipe(fs.createWriteStream(path.join(__dirname, 'fomantic-ui-css/LICENSE.md'))),
-);
-
 const cssUrlPattern = '((?<!\\w)url\\([\'"]?(?!data:))((?:[^(){}\\\\\'"]|\\\\.)*)([\'"]?\\))';
 
-// use native font stack in Fomantic UI
-// remove once https://github.com/fomantic/Fomantic-UI/issues/2355 is implemented and released
-walkFilesSync(path.join(__dirname, 'fomantic-ui-css'), (f) => {
+// use native font stack in Fomantic-UI
+// https://github.com/fomantic/Fomantic-UI/issues/2355
+walkFilesSync(path.join(__dirname, 'fomantic-ui'), (f) => {
     updateFileSync(f, (data) => {
         if (!f.endsWith('.css')) {
             return;
         }
 
-        data = data.replace(new RegExp('@import ' + cssUrlPattern + ';?', 'g'), (m, m1, m2, m3) => {
-            if (m2.startsWith('https://fonts.googleapis.com/css2?family=Lato:')) {
+        data = data.replace(new RegExp('\\s*@font-face\\s*\\{[^{}]*' + cssUrlPattern + '[^{}]+\\}', 'g'), (m, m1, m2, m3) => {
+            if (m2.includes('/assets/fonts/Lato')) {
                 return '';
             }
 
@@ -118,13 +102,12 @@ walkFilesSync(path.join(__dirname, 'fomantic-ui-css'), (f) => {
 });
 
 // remove links to fonts with format other than woff2 from Fomantic-UI
-walkFilesSync(path.join(__dirname, 'fomantic-ui-css'), (f) => {
+walkFilesSync(path.join(__dirname, 'fomantic-ui'), (f) => {
     updateFileSync(f, (data) => {
         if (!f.endsWith('.css')) {
             return;
         }
 
-        data = data.replace(new RegExp('src:\\s*(?=[^{};,]+\\.eot(?!\\w))' + cssUrlPattern + ';\\s*', 'g'), '');
         data = data.replace(new RegExp('(src:\\s*(?!\\s))[^{};]*((?=[^{};,]+\\.woff2(?!\\w))' + cssUrlPattern + ')[^{};]*(;)', 'g'), '$1$2 format(\'woff2\')$6');
 
         return data;
@@ -133,13 +116,13 @@ walkFilesSync(path.join(__dirname, 'fomantic-ui-css'), (f) => {
 
 // remove twemoji images from Fomantic-UI, reduce total size by about 3500 files and 25 MB
 // wait until https://github.com/fomantic/Fomantic-UI/issues/2363 is implemented or pack all images in one phar
-walkFilesSync(path.join(__dirname, 'fomantic-ui-css'), (f) => {
+walkFilesSync(path.join(__dirname, 'fomantic-ui'), (f) => {
     updateFileSync(f, (data) => {
         if (!f.endsWith('.css')) {
             return;
         }
 
-        data = data.replace(/\s*((?<!\w)em\[data-emoji=[^[\]{}\\]+\]:before,?\s*)+\{[^{}]*background-image:[^{}]+\}/g, '');
+        data = data.replace(/\s*((?<!\w)em\[data-emoji=[^[\]{}\\]+\]::before,?\s*)+\{[^{}]*background-image:[^{}]+\}/g, '');
 
         return data;
     });
@@ -148,7 +131,12 @@ walkFilesSync(path.join(__dirname, 'fomantic-ui-css'), (f) => {
 // replace absolute URLs with relative paths
 walkFilesSync(__dirname, (f) => {
     updateFileSync(f, (data) => {
-        if (!f.endsWith('.css')) {
+        if (!f.endsWith('.css')
+            || f.startsWith(path.join(__dirname, 'chart.js/dist/docs/'))
+            || f.startsWith(path.join(__dirname, 'gulp-concat-css/'))
+            || f.startsWith(path.join(__dirname, 'less/'))
+            || f.startsWith(path.join(__dirname, 'rtlcss/'))
+        ) {
             return;
         }
 
@@ -172,7 +160,7 @@ walkFilesSync(__dirname, (f) => {
                 }
 
                 if (pathRel === null) {
-                    throw new Error('URL "' + m2 + '" has no local file mapping');
+                    throw new Error('URL "' + m2 + '" linked from "' + f + '"  has no local file mapping');
                 }
             } else {
                 pathRel = m2;
@@ -189,6 +177,20 @@ walkFilesSync(__dirname, (f) => {
 
             return m1 + pathRel + m3;
         });
+
+        return data;
+    });
+});
+
+// remove repeated Fomantic-UI version comments for easier diff
+// https://github.com/fomantic/Fomantic-UI/issues/2468
+walkFilesSync(path.join(__dirname, 'fomantic-ui'), (f) => {
+    updateFileSync(f, (data) => {
+        if (!f.endsWith('.css') && !f.endsWith('.js')) {
+            return;
+        }
+
+        data = data.replace(/(?<!^)\/\*!(?:(?!\/\*).)*# Fomantic-UI \d+\.\d+\.(?:(?!\/\*).)*MIT license(?:(?!\/\*).)*\*\/\n?/gs, '');
 
         return data;
     });

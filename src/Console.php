@@ -16,7 +16,7 @@ class Console extends View implements \Psr\Log\LoggerInterface
     public $ui = 'inverted black segment';
 
     /**
-     * Specify which event will trigger this console. Set to 'false'
+     * Specify which event will trigger this console. Set to false
      * to disable automatic triggering if you need to trigger it
      * manually.
      *
@@ -35,7 +35,7 @@ class Console extends View implements \Psr\Log\LoggerInterface
      */
     protected $sseInProgress = false;
 
-    /** @var JsSse Stores object JsSse which is used for communication. */
+    /** @var JsSse|null Stores object JsSse which is used for communication. */
     public $sse;
 
     /**
@@ -44,7 +44,10 @@ class Console extends View implements \Psr\Log\LoggerInterface
      *
      * @var bool
      */
-    public $_output_bypass = false;
+    protected $_outputBypass = false;
+
+    /** @var int|null */
+    public $lastExitCode;
 
     /**
      * Set a callback method which will be executed with the output sent back to the terminal.
@@ -61,7 +64,7 @@ class Console extends View implements \Psr\Log\LoggerInterface
      * This intercepts default application logging for the duration of the process.
      *
      * If you are using runCommand, then server command will be executed with it's output
-     * (STDOUT and STDERR) redirected to the console.
+     * (stdout and stderr) redirected to the console.
      *
      * While inside a callback you may execute runCommand or setModel multiple times.
      *
@@ -73,11 +76,11 @@ class Console extends View implements \Psr\Log\LoggerInterface
      */
     public function set($fx = null, $event = null)
     {
-        if (!($fx instanceof \Closure)) {
+        if (!$fx instanceof \Closure) {
             throw new Exception('Please specify the $callback argument');
         }
 
-        if (isset($event)) {
+        if ($event !== null) {
             $this->event = $event;
         }
 
@@ -94,12 +97,12 @@ class Console extends View implements \Psr\Log\LoggerInterface
             }
 
             ob_start(function (string $content) {
-                if ($this->_output_bypass || $content === '' /* needed as self::output() adds NL */) {
+                if ($this->_outputBypass || $content === '' /* needed as self::output() adds NL */) {
                     return $content;
                 }
 
                 $output = '';
-                $this->sse->echoFunction = function ($str) use (&$output) {
+                $this->sse->echoFunction = function (string $str) use (&$output) {
                     $output .= $str;
                 };
                 $this->output($content);
@@ -140,8 +143,9 @@ class Console extends View implements \Psr\Log\LoggerInterface
 
     private function escapeOutputHtml(string $message): string
     {
-        $res = htmlspecialchars($message);
+        $res = $this->getApp()->encodeHtml($message);
 
+        // TODO assert with Behat test
         // fix new lines for display and copy paste, testcase:
         // $genFx = function (array $values, int $maxLength, array $prev = null) use (&$genFx) {
         //     $res = [];
@@ -191,9 +195,9 @@ class Console extends View implements \Psr\Log\LoggerInterface
      *
      * @return $this
      */
-    public function outputHtml(string $message, array $context = [])
+    public function outputHtml(string $messageHtml, array $context = [])
     {
-        $this->outputHtmlWithoutPre('<div style="font-family: monospace; white-space: pre;">' . $message . '</div>', $context);
+        $this->outputHtmlWithoutPre($this->getApp()->getTag('div', ['style' => 'font-family: monospace; white-space: pre;'], [$messageHtml]), $context);
 
         return $this;
     }
@@ -203,19 +207,19 @@ class Console extends View implements \Psr\Log\LoggerInterface
      *
      * @return $this
      */
-    protected function outputHtmlWithoutPre(string $message, array $context = [])
+    protected function outputHtmlWithoutPre(string $messageHtml, array $context = [])
     {
-        $message = preg_replace_callback('~{([\w]+)}~', function ($matches) use ($context) {
+        $messageHtml = preg_replace_callback('~{([\w]+)}~', function ($matches) use ($context) {
             if (isset($context[$matches[1]])) {
                 return $context[$matches[1]];
             }
 
             return $matches[0];
-        }, $message);
+        }, $messageHtml);
 
-        $this->_output_bypass = true;
-        $this->sse->send($this->js()->append($message));
-        $this->_output_bypass = false;
+        $this->_outputBypass = true;
+        $this->sse->send($this->js()->append($messageHtml));
+        $this->_outputBypass = false;
 
         return $this;
     }
@@ -236,19 +240,17 @@ class Console extends View implements \Psr\Log\LoggerInterface
      */
     public function send($js)
     {
-        $this->_output_bypass = true;
+        $this->_outputBypass = true;
         $this->sse->send($js);
-        $this->_output_bypass = false;
+        $this->_outputBypass = false;
 
         return $this;
     }
 
-    public $last_exit_code;
-
     /**
      * Executes command passing along escaped arguments.
      *
-     * Will also stream stdout / stderr as the comand executes.
+     * Will also stream stdout / stderr as the command executes.
      * once command terminates method will return the exit code.
      *
      * This method can be executed from inside callback or
@@ -258,22 +260,25 @@ class Console extends View implements \Psr\Log\LoggerInterface
      *
      * All arguments are escaped.
      */
-    public function exec($exec, $args = [])
+    public function exec(string $command, array $args = []): ?bool
     {
         if (!$this->sseInProgress) {
-            $this->set(function () use ($exec, $args) {
-                $a = $args ? (' with ' . count($args) . ' arguments') : '';
-                $this->output('--[ Executing ' . $exec . $a . ' ]--------------');
+            $this->set(function () use ($command, $args) {
+                $this->output(
+                    '--[ Executing ' . $command
+                    . ($args ? ' with ' . count($args) . ' arguments' : '')
+                    . ' ]--------------'
+                );
 
-                $this->exec($exec, $args);
+                $this->exec($command, $args);
 
-                $this->output('--[ Exit code: ' . $this->last_exit_code . ' ]------------');
+                $this->output('--[ Exit code: ' . $this->lastExitCode . ' ]------------');
             });
 
-            return;
+            return null;
         }
 
-        [$proc, $pipes] = $this->execRaw($exec, $args);
+        [$proc, $pipes] = $this->execRaw($command, $args);
 
         stream_set_blocking($pipes[1], false);
         stream_set_blocking($pipes[2], false);
@@ -295,42 +300,39 @@ class Console extends View implements \Psr\Log\LoggerInterface
             foreach ($read as $f) {
                 $data = rtrim((string) fgets($f));
                 if ($data === '') {
+                    // TODO fix coverage stability, add test with explicit empty string
+                    // @codeCoverageIgnoreStart
                     continue;
+                    // @codeCoverageIgnoreEnd
                 }
 
-                if ($f === $pipes[2]) {
-                    // STDERR
+                if ($f === $pipes[2]) { // stderr
                     $this->warning($data);
-                } else {
-                    // STDOUT
+                } else { // stdout
                     $this->output($data);
                 }
             }
         }
 
-        $this->last_exit_code = $stat['exitcode']; // @phpstan-ignore-line
+        $this->lastExitCode = $stat['exitcode'];
 
-        return $this->last_exit_code ? false : $this;
+        return $this->lastExitCode ? false : true;
     }
 
-    protected function execRaw($exec, $args = [])
+    /**
+     * @return array{resource, non-empty-array}
+     */
+    protected function execRaw(string $command, array $args = [])
     {
-        // Escape arguments
-        foreach ($args as $key => $val) {
-            if (!is_scalar($val)) {
-                throw (new Exception('Arguments must be scalar'))
-                    ->addMoreInfo('arg', $val);
-            }
-            $args[$key] = escapeshellarg($val);
-        }
+        $command = escapeshellcmd($command);
+        $args = array_map(fn ($v) => escapeshellarg($v), $args);
 
-        $exec = escapeshellcmd($exec);
         $spec = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']]; // we want stdout and stderr
         $pipes = null;
-        $proc = proc_open($exec . ' ' . implode(' ', $args), $spec, $pipes);
+        $proc = proc_open($command . ' ' . implode(' ', $args), $spec, $pipes);
         if (!is_resource($proc)) {
             throw (new Exception('Command failed to execute'))
-                ->addMoreInfo('exec', $exec)
+                ->addMoreInfo('command', $command)
                 ->addMoreInfo('args', $args);
         }
 
@@ -358,7 +360,7 @@ class Console extends View implements \Psr\Log\LoggerInterface
      * for the $user_model automatically, but for any nested objects you would have
      * to pass on the property.
      *
-     * @param object|string $object
+     * @param object|class-string $object
      *
      * @return $this
      */
@@ -395,13 +397,10 @@ class Console extends View implements \Psr\Log\LoggerInterface
                     $object->debug = $debugBak; // @phpstan-ignore-line
                 }
             }
-        } elseif (is_string($object)) {
+        } else {
             $this->output('--[ Executing ' . $object . '::' . $method . ' ]--------------');
 
             $result = $object::{$method}(...$args);
-        } else {
-            throw (new Exception('Incorrect value for an object'))
-                ->addMoreInfo('object', $object);
         }
         $this->output('--[ Result: ' . $this->getApp()->encodeJson($result) . ' ]------------');
 

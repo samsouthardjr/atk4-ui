@@ -2,13 +2,13 @@
  * Babel configuration file.
  * targets browser from Browserlist integration query.
  *
- * @type {*[][]}
+ * @type {Array.<Array.<*>>}
  */
 const presets = [
     [
         '@babel/env',
         {
-            targets: '> 1% , not dead',
+            targets: '> 1%, not dead',
             corejs: { version: '3.6', proposals: true },
             useBuiltIns: 'usage',
         },

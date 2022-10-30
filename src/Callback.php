@@ -24,10 +24,7 @@ use Atk4\Ui\Exception\UnhandledCallbackExceptionError;
  */
 class Callback extends AbstractView
 {
-    /** @const string */
     public const URL_QUERY_TRIGGER_PREFIX = '__atk_cb_';
-
-    /** @const string */
     public const URL_QUERY_TARGET = '__atk_cbtarget';
 
     /** @var string Specify a custom GET trigger. */
@@ -36,7 +33,7 @@ class Callback extends AbstractView
     /** @var bool Allow this callback to trigger during a reload. */
     public $triggerOnReload = true;
 
-    public function add($object, $args = null): AbstractView
+    public function add(AbstractView $object, array $args = []): AbstractView
     {
         throw new Exception('Callback cannot contains children');
     }
@@ -50,9 +47,9 @@ class Callback extends AbstractView
         $this->setUrlTrigger($this->urlTrigger);
     }
 
-    public function setUrlTrigger(string $trigger = null)
+    public function setUrlTrigger(string $trigger = null): void
     {
-        $this->urlTrigger = $trigger ?: $this->name;
+        $this->urlTrigger = $trigger ?? $this->name;
 
         $this->getOwner()->stickyGet(self::URL_QUERY_TRIGGER_PREFIX . $this->urlTrigger);
     }
@@ -81,12 +78,14 @@ class Callback extends AbstractView
                 throw new UnhandledCallbackExceptionError('', 0, $e);
             }
         }
+
+        return null;
     }
 
     /**
      * Terminate this callback by rendering the given view.
      */
-    public function terminateJson(AbstractView $view): void
+    public function terminateJson(View $view): void
     {
         if ($this->canTerminate()) {
             $this->getApp()->terminateJson($view);
@@ -122,7 +121,7 @@ class Callback extends AbstractView
      */
     public function canTrigger(): bool
     {
-        return $this->triggerOnReload || empty($_GET['__atk_reload']);
+        return $this->triggerOnReload || !isset($_GET['__atk_reload']);
     }
 
     /**

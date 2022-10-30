@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace Atk4\Ui\Demos;
 
+use Atk4\Core\Exception as CoreException;
+use Atk4\Data\Model;
 use Atk4\Data\Persistence;
+use Atk4\Ui\Button;
 use Atk4\Ui\Form;
+use Atk4\Ui\Header;
+use Atk4\Ui\JsToast;
+use Atk4\Ui\Message;
+use Atk4\Ui\Modal;
+use Atk4\Ui\Tabs;
+use Atk4\Ui\View;
 
 /** @var \Atk4\Ui\App $app */
 require_once __DIR__ . '/../init-app.php';
 
-/**
+/*
  * Apart from demonstrating the form, this example uses an alternative way of rendering the layouts.
  * Here we don't create application object explicitly, instead we use our custom template
  * with a generic layout.
@@ -21,13 +30,13 @@ require_once __DIR__ . '/../init-app.php';
  * This approach will also prevent your application from registering shutdown handler or catching error,
  * so we will need to do a bit of work about that too.
  */
-$tabs = \Atk4\Ui\Tabs::addTo($app);
+$tabs = Tabs::addTo($app);
 
 // -----------------------------------------------------------------------------
 
 $tab = $tabs->addTab('Basic Use');
 
-\Atk4\Ui\Header::addTo($tab, ['Very simple form']);
+Header::addTo($tab, ['Very simple form']);
 
 $form = Form::addTo($tab);
 $form->addControl('email');
@@ -40,7 +49,7 @@ $form->onSubmit(function (Form $form) {
 $form->buttonSave->set('Subscribe');
 $form->buttonSave->icon = 'mail';
 
-\Atk4\Ui\Header::addTo($tab, ['But very flexible']);
+Header::addTo($tab, ['But very flexible']);
 
 $form = Form::addTo($tab);
 $group = $form->addGroup(['width' => 'three']);
@@ -49,20 +58,20 @@ $group->addControl('surname');
 $group->addControl('gender', [Form\Control\Dropdown::class, 'values' => ['Female', 'Male']]);
 
 // testing 0 value
-$values = [0 => 'noob', 1 => 'pro', 2 => 'dev'];
+$values = ['noob', 'pro', 'dev'];
 $form->addControl('description', [Form\Control\Textarea::class])->set(0);
 $form->addControl('no_description', [Form\Control\Textarea::class])->set(null);
 $form->addControl('status_optional', [Form\Control\Dropdown::class, 'values' => $values]);
+$form->addControl('status_string_not-nullable', [Form\Control\Dropdown::class], ['type' => 'string', 'values' => $values, 'nullable' => false]);
+$form->addControl('status_integer_not-nullable', [Form\Control\Dropdown::class], ['type' => 'integer', 'values' => $values, 'nullable' => false]);
 $form->addControl('status_string_required', [Form\Control\Dropdown::class], ['type' => 'string', 'values' => $values, 'required' => true]);
 $form->addControl('status_integer_required', [Form\Control\Dropdown::class], ['type' => 'integer', 'values' => $values, 'required' => true]);
-$form->addControl('status_string_mandatory', [Form\Control\Dropdown::class], ['type' => 'string', 'values' => $values, 'mandatory' => true]);
-$form->addControl('status_integer_mandatory', [Form\Control\Dropdown::class], ['type' => 'integer', 'values' => $values, 'mandatory' => true]);
 
 $form->onSubmit(function (Form $form) use ($app) {
-    return new \Atk4\Ui\JsToast($app->encodeJson($form->model->get()));
+    return new JsToast($app->encodeJson($form->model->get()));
 });
 
-\Atk4\Ui\Header::addTo($tab, ['Comparing Field type vs Form control class']);
+Header::addTo($tab, ['Comparing Field type vs Form control class']);
 $form = Form::addTo($tab);
 $form->addControl('field', [], ['type' => 'date', 'caption' => 'Date using model field:']);
 $form->addControl('control', [Form\Control\Calendar::class, 'type' => 'date', 'caption' => 'Date using form control: ']);
@@ -70,7 +79,7 @@ $form->buttonSave->set('Compare Date');
 
 $form->onSubmit(function (Form $form) {
     $message = 'field = ' . print_r($form->model->get('field'), true) . '; <br> control = ' . print_r($form->model->get('control'), true);
-    $view = new \Atk4\Ui\Message('Date field vs control:');
+    $view = new Message('Date field vs control:');
     $view->invokeInit();
     $view->text->addHtml($message);
 
@@ -81,7 +90,7 @@ $form->onSubmit(function (Form $form) {
 
 $tab = $tabs->addTab('Handler Output');
 
-\Atk4\Ui\Header::addTo($tab, ['Form can respond with manually generated error']);
+Header::addTo($tab, ['Form can respond with manually generated error']);
 $form = Form::addTo($tab);
 $form->addControl('email1');
 $form->buttonSave->set('Save1');
@@ -89,7 +98,7 @@ $form->onSubmit(function (Form $form) {
     return $form->error('email1', 'some error action ' . random_int(1, 100));
 });
 
-\Atk4\Ui\Header::addTo($tab, ['..or success message']);
+Header::addTo($tab, ['..or success message']);
 $form = Form::addTo($tab);
 $form->addControl('email2');
 $form->buttonSave->set('Save2');
@@ -97,34 +106,34 @@ $form->onSubmit(function (Form $form) {
     return $form->success('form was successful');
 });
 
-\Atk4\Ui\Header::addTo($tab, ['Any other view can be output']);
+Header::addTo($tab, ['Any other view can be output']);
 $form = Form::addTo($tab);
 $form->addControl('email3');
 $form->buttonSave->set('Save3');
 $form->onSubmit(function (Form $form) {
-    $view = new \Atk4\Ui\Message('some header');
+    $view = new Message('some header');
     $view->invokeInit();
     $view->text->addParagraph('some text ' . random_int(1, 100));
 
     return $view;
 });
 
-\Atk4\Ui\Header::addTo($tab, ['Modal can be output directly']);
+Header::addTo($tab, ['Modal can be output directly']);
 $form = Form::addTo($tab);
 $form->addControl('email4');
 $form->buttonSave->set('Save4');
 $form->onSubmit(function (Form $form) {
-    $view = new \Atk4\Ui\Message('some header');
+    $view = new Message('some header');
     $view->invokeInit();
     $view->text->addParagraph('some text ' . random_int(1, 100));
 
-    $modal = new \Atk4\Ui\Modal(['title' => 'Something happen', 'ui' => 'ui modal tiny']);
+    $modal = new Modal(['title' => 'Something happen', 'ui' => 'ui modal tiny']);
     $modal->add($view);
 
     return $modal;
 });
 
-\Atk4\Ui\Header::addTo($tab, ['jsAction can be used too']);
+Header::addTo($tab, ['jsAction can be used too']);
 $form = Form::addTo($tab);
 $control = $form->addControl('email5');
 $form->buttonSave->set('Save5');
@@ -136,49 +145,52 @@ $form->onSubmit(function (Form $form) use ($control) {
 
 $tab = $tabs->addTab('Handler Safety');
 
-\Atk4\Ui\Header::addTo($tab, ['Form handles errors', 'size' => 2]);
+Header::addTo($tab, ['Form handles errors', 'size' => 2]);
 
 $form = Form::addTo($tab);
 $form->addControl('email');
+$form->buttonSave->set('SaveE1');
 $form->onSubmit(function (Form $form) {
     $o = new \stdClass();
 
     return $o['abc'];
 });
 
-\Atk4\Ui\Header::addTo($tab, ['Form shows Agile exceptions', 'size' => 2]);
+Header::addTo($tab, ['Form shows Agile exceptions', 'size' => 2]);
 
 $form = Form::addTo($tab);
 $form->addControl('email');
+$form->buttonSave->set('SaveE2');
 $form->onSubmit(function (Form $form) {
-    throw (new \Atk4\Core\Exception('testing'))
+    throw (new CoreException('Test exception I.'))
         ->addMoreInfo('arg1', 'val1');
 
-    return 'somehow it did not crash';
+    // return 'somehow it did not crash';
 });
 
-\Atk4\Ui\Button::addTo($form, ['Modal Test', 'secondary'])->on('click', \Atk4\Ui\Modal::addTo($form)
-    ->set(function ($p) {
+Button::addTo($form, ['Modal Test', 'class.secondary' => true])
+    ->on('click', Modal::addTo($form)->set(function (View $p) {
         $form = Form::addTo($p);
+        $form->name = 'mf';
         $form->addControl('email');
         $form->onSubmit(function (Form $form) {
-            throw (new \Atk4\Core\Exception('testing'))
+            throw (new CoreException('Test exception II.'))
                 ->addMoreInfo('arg1', 'val1');
 
-            return 'somehow it did not crash';
+            // return 'somehow it did not crash';
         });
-    })->show());
+    })->jsShow());
 
 // -----------------------------------------------------------------------------
 
 $tab = $tabs->addTab('Complex Examples');
 
-\Atk4\Ui\Header::addTo($tab, ['Conditional response']);
+Header::addTo($tab, ['Conditional response']);
 
-$modelRegister = new \Atk4\Data\Model(new Persistence\Array_());
+$modelRegister = new Model(new Persistence\Array_());
 $modelRegister->addField('name');
 $modelRegister->addField('email');
-$modelRegister->addField('is_accept_terms', ['type' => 'boolean', 'mandatory' => true]);
+$modelRegister->addField('is_accept_terms', ['type' => 'boolean', 'nullable' => false]);
 $modelRegister = $modelRegister->createEntity();
 
 $form = Form::addTo($tab, ['class.segment' => true]);
@@ -191,7 +203,7 @@ $form->onSubmit(function (Form $form) {
 
     return [
         $form->jsInput('email')->val('john@gmail.com'),
-        $form->jsControl('is_accept_terms')->checkbox('set checked'),
+        $form->getControl('is_accept_terms')->js()->checkbox('set checked'),
     ];
 });
 
@@ -199,10 +211,10 @@ $form->onSubmit(function (Form $form) {
 
 $tab = $tabs->addTab('Layout Control');
 
-\Atk4\Ui\Header::addTo($tab, ['Shows example of grouping and multiple errors']);
+Header::addTo($tab, ['Shows example of grouping and multiple errors']);
 
-$form = Form::addTo($tab, ['segment']);
-$form->setModel((new \Atk4\Data\Model())->createEntity());
+$form = Form::addTo($tab, ['class.segment' => true]);
+$form->setModel((new Model())->createEntity());
 
 $form->addHeader('Example fields added one-by-one');
 $form->addControl('name');
@@ -224,7 +236,6 @@ $group->addControl('last_name', ['width' => 'five']);
 
 $form->onSubmit(function (Form $form) {
     $errors = [];
-
     foreach ($form->model->getFields() as $name => $ff) {
         if ($name === 'id') {
             continue;
@@ -235,5 +246,5 @@ $form->onSubmit(function (Form $form) {
         }
     }
 
-    return $errors ?: $form->success('No more errors', 'so we have saved everything into the database');
+    return $errors !== [] ? $errors : $form->success('No more errors', 'so we have saved everything into the database');
 });

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Atk4\Ui;
 
 /**
- * Class implements ProgressBar.
- *
- * $bar = ProgressBar::addTo($app, [10, 'label' => 'Processing files']);
+ * $bar = ProgressBar::addTo($app, [10, 'label' => 'Processing files']);.
  */
 class ProgressBar extends View
 {
@@ -29,11 +27,14 @@ class ProgressBar extends View
     /** @var int Indicates a maximum value of a progress bar. */
     public $max = 100;
 
-    public function __construct($value = 0, $label = null, $class = null)
+    /**
+     * @param array|string $label
+     */
+    public function __construct(int $value = 0, $label = [])
     {
         $this->value = $value;
 
-        parent::__construct($label, $class);
+        parent::__construct($label);
     }
 
     protected function renderView(): void
@@ -56,12 +57,10 @@ class ProgressBar extends View
     /**
      * Return js action for setting value (client-side).
      *
-     * @param int $value new value
-     *
      * @return JsExpressionable
      */
-    public function jsValue($value)
+    public function jsValue(int $value)
     {
-        return $this->js()->progress(['percent' => (int) $value]);
+        return $this->js()->progress(['percent' => $value]);
     }
 }

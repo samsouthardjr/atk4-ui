@@ -4,31 +4,34 @@ declare(strict_types=1);
 
 namespace Atk4\Ui\Demos;
 
+use Atk4\Data\Model;
+use Atk4\Ui\Button;
 use Atk4\Ui\Form;
+use Atk4\Ui\Header;
+use Atk4\Ui\Jquery;
 use Atk4\Ui\JsToast;
+use Atk4\Ui\Label;
 
 /** @var \Atk4\Ui\App $app */
 require_once __DIR__ . '/../init-app.php';
 
-// Testing form.
-
 // create header
-\Atk4\Ui\Header::addTo($app, ['Database-driven form with an enjoyable layout']);
+Header::addTo($app, ['Database-driven form with an enjoyable layout']);
 
 // create form
-$form = Form::addTo($app, ['segment']);
-// $form = Form::addTo($app, ['segment', 'buttonSave' => false]);
-// $form = Form::addTo($app, ['segment', 'buttonSave' => new \Atk4\Ui\Button(['Import', 'secondary', 'iconRight' => 'list'])]);
-// $form = Form::addTo($app, ['segment', 'buttonSave' => [null, 'Import', 'secondary', 'iconRight' => 'list']]);
-\Atk4\Ui\Label::addTo($form, ['Input new country information here', 'top attached'], ['AboveControls']);
+$form = Form::addTo($app, ['class.segment' => true]);
+// $form = Form::addTo($app, ['class.segment' => true, 'buttonSave' => false]);
+// $form = Form::addTo($app, ['class.segment' => true, 'buttonSave' => new Button(['Import', 'class.secondary' => true, 'iconRight' => 'list'])]);
+// $form = Form::addTo($app, ['class.segment' => true, 'buttonSave' => [null, 'Import', 'class.secondary' => true, 'iconRight' => 'list']]);
+Label::addTo($form, ['Input new country information here', 'class.top attached' => true], ['AboveControls']);
 
 $form->setModel((new Country($app->db))->createEntity(), []);
 
 // form basic field group
 $formAddress = $form->addGroup('Basic Country Information');
 $name = $formAddress->addControl(Country::hinting()->fieldName()->name, ['width' => 'sixteen']);
-$name->addAction(['Check Duplicate', 'iconRight' => 'search'])->on('click', function ($jQuery, $name) use ($app, $form) {
-    if ((new Country($app->db))->tryLoadBy(Country::hinting()->fieldName()->name, $name)->isLoaded()) {
+$name->addAction(['Check Duplicate', 'iconRight' => 'search'])->on('click', function (Jquery $jquery, string $name) use ($app, $form) {
+    if ((new Country($app->db))->tryLoadBy(Country::hinting()->fieldName()->name, $name) !== null) {
         return $form->js()->form('add prompt', Country::hinting()->fieldName()->name, 'This country name is already added.');
     }
 
@@ -79,15 +82,14 @@ $form->onSubmit(function (Form $form) {
     return new JsToast($countryEntity->getUserAction('add')->execute());
 });
 
-// ======
-
-/** @var \Atk4\Data\Model $personClass */
-$personClass = AnonymousClassNameCache::get_class(fn () => new class() extends \Atk4\Data\Model {
+/** @var Model $personClass */
+$personClass = AnonymousClassNameCache::get_class(fn () => new class() extends Model {
     public $table = 'person';
 
     protected function init(): void
     {
         parent::init();
+
         $this->addField('name', ['required' => true]);
         $this->addField('surname', ['ui' => ['placeholder' => 'e.g. Smith']]);
         $this->addField('gender', ['enum' => ['M', 'F']]);
@@ -95,9 +97,9 @@ $personClass = AnonymousClassNameCache::get_class(fn () => new class() extends \
         $this->hasOne('country_dropdown_id', ['model' => [Country::class], 'ui' => ['form' => new Form\Control\Dropdown()]]); // this works slow
     }
 
-    public function validate($intent = null): array
+    public function validate(string $intent = null): array
     {
-        $errors = parent::validate();
+        $errors = parent::validate($intent);
 
         if ($this->get('name') === $this->get('surname')) {
             $errors['surname'] = 'Your surname cannot be same as the name';
@@ -110,6 +112,6 @@ $personClass = AnonymousClassNameCache::get_class(fn () => new class() extends \
 $form = Form::addTo($app)->addClass('segment');
 $form->setModel((new $personClass($app->db))->createEntity());
 
-$form->onSubmit(function ($form) {
+$form->onSubmit(function (Form $form) {
     return new JsToast('Form saved!');
 });

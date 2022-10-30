@@ -6,17 +6,19 @@ namespace Atk4\Ui\Demos;
 
 use Atk4\Ui\Button;
 use Atk4\Ui\CardDeck;
+use Atk4\Ui\Crud;
+use Atk4\Ui\Message;
 use Atk4\Ui\UserAction\ExecutorFactory;
 use Atk4\Ui\View;
 
 /** @var \Atk4\Ui\App $app */
 require_once __DIR__ . '/../init-app.php';
 
-Button::addTo($app, ['Executor Factory in View Instance', 'small right floated basic blue', 'iconRight' => 'right arrow'])
+Button::addTo($app, ['Executor Factory in View Instance', 'class.small right floated basic blue' => true, 'iconRight' => 'right arrow'])
     ->link(['factory-view']);
 View::addTo($app, ['ui' => 'ui clearing divider']);
 
-$msg = \Atk4\Ui\Message::addTo($app, [
+$msg = Message::addTo($app, [
     'Customizing action trigger by Overriding Executor Factory',
 ]);
 $msg->text->addParagraph('');
@@ -28,7 +30,7 @@ $msg->text->addParagraph('In this example, Crud and Card button was changed and 
 // Overriding basic ExecutorFactory in order to change Table and Modal button.
 // and also changing default add action label.
 $myFactory = AnonymousClassNameCache::get_class(fn () => new class() extends ExecutorFactory {
-    public const BUTTON_PRIMARY_COLOR = 'green';
+    public $buttonPrimaryColor = 'green';
 
     protected $triggerSeed = [
         self::TABLE_BUTTON => [
@@ -51,7 +53,7 @@ $app->setExecutorFactory(new $myFactory());
 
 $country = new Country($app->db);
 
-$crud = \Atk4\Ui\Crud::addTo($app, ['ipp' => 5]);
+$crud = Crud::addTo($app, ['ipp' => 5]);
 $crud->setModel($country);
 
 View::addTo($app, ['class' => ['ui divider']]);

@@ -7,10 +7,8 @@ namespace Atk4\Ui;
 use Atk4\Core\Factory;
 use Atk4\Data\Model;
 use Atk4\Ui\UserAction\ExecutorFactory;
+use Atk4\Ui\UserAction\ExecutorInterface;
 
-/**
- * Implements a more sophisticated and interactive Data-Table component.
- */
 class Crud extends Grid
 {
     /** @var array of fields to display in Grid */
@@ -28,14 +26,14 @@ class Crud extends Grid
     /** @var bool|null should we use table column drop-down menu to display user actions? */
     public $useMenuActions;
 
-    /** @var array Collection of APPLIES_TO_NO_RECORDS Scope Model action menu item */
-    private $menuItems = [];
+    /** Collection of APPLIES_TO_NO_RECORDS Scope Model action menu item */
+    private array $menuItems = [];
 
-    /** @var array Model single scope action to include in table action column. Will include all single scope actions if empty. */
-    public $singleScopeActions = [];
+    /** Model single scope action to include in table action column. Will include all single scope actions if empty. */
+    public array $singleScopeActions = [];
 
-    /** @var array Model no_record scope action to include in menu. Will include all no record scope actions if empty. */
-    public $noRecordScopeActions = [];
+    /** Model no_record scope action to include in menu. Will include all no record scope actions if empty. */
+    public array $noRecordScopeActions = [];
 
     /** @var string Message to display when record is add or edit successfully. */
     public $saveMsg = 'Record has been saved!';
@@ -61,14 +59,11 @@ class Crud extends Grid
         }
     }
 
-    /**
-     * Apply ordering to the current model as per the sort parameters.
-     */
-    public function applySort()
+    public function applySort(): void
     {
         parent::applySort();
 
-        if ($this->getSortBy() && !empty($this->menuItems)) {
+        if ($this->getSortBy() && $this->menuItems !== []) {
             foreach ($this->menuItems as $item) {
                 // Remove previous click handler and attach new one using sort argument.
                 $this->container->js(true, $item['item']->js()->off('click.atk_crud_item'));
@@ -81,11 +76,6 @@ class Crud extends Grid
         }
     }
 
-    /**
-     * Sets data model of Crud.
-     *
-     * @param array<int, string>|null $fields
-     */
     public function setModel(Model $model, array $fields = null): void
     {
         $model->assertIsModel();
@@ -143,13 +133,13 @@ class Crud extends Grid
     protected function initActionExecutor(Model\UserAction $action)
     {
         $executor = $this->getExecutor($action);
-        $executor->onHook(UserAction\BasicExecutor::HOOK_AFTER_EXECUTE, function ($ex, $return, $id) use ($action) {
+        $executor->onHook(UserAction\BasicExecutor::HOOK_AFTER_EXECUTE, function (ExecutorInterface $ex, $return, $id) use ($action) {
             return $this->jsExecute($return, $action);
         });
 
         if ($executor instanceof UserAction\ModalExecutor) {
             foreach ($this->onActions as $onAction) {
-                $executor->onHook(UserAction\ModalExecutor::HOOK_STEP, function ($ex, $step, $form) use ($onAction, $action) {
+                $executor->onHook(UserAction\ModalExecutor::HOOK_STEP, function (UserAction\ModalExecutor $ex, string $step, Form $form) use ($onAction, $action) {
                     $key = array_key_first($onAction);
                     if ($key === $action->shortName && $step === 'fields') {
                         return $onAction[$key]($form, $ex);
@@ -164,6 +154,8 @@ class Crud extends Grid
     /**
      * Return proper js statement for afterExecute hook on action executor
      * depending on return type, model loaded and action scope.
+     *
+     * @param string|null $return
      */
     protected function jsExecute($return, Model\UserAction $action): array
     {
@@ -201,9 +193,9 @@ class Crud extends Grid
                 break;
             case Model\UserAction::MODIFIER_DELETE:
                 // use deleted record id to remove row, fallback to closest tr if id is not available.
-                $js = $this->deletedId ?
-                    (new Jquery('tr[data-id="' . $this->deletedId . '"]'))->transition('fade left') :
-                    (new Jquery())->closest('tr')->transition('fade left');
+                $js = $this->deletedId
+                    ? (new Jquery('tr[data-id="' . $this->deletedId . '"]'))->transition('fade left')
+                    : (new Jquery())->closest('tr')->transition('fade left');
 
                 break;
             default:
@@ -219,7 +211,7 @@ class Crud extends Grid
      *
      * @param string|null $msg the message to display
      *
-     * @return object
+     * @return JsExpressionable
      */
     protected function getNotifier(string $msg = null)
     {
@@ -234,7 +226,7 @@ class Crud extends Grid
     /**
      * Setup js for firing menu action.
      */
-    protected function setItemsAction()
+    protected function setItemsAction(): void
     {
         foreach ($this->menuItems as $k => $item) {
             $this->container->js(true, $item['item']->on('click.atk_crud_item', $item['executor']));
@@ -268,6 +260,7 @@ class Crud extends Grid
      */
     private function _getReloadArgs()
     {
+        $args = [];
         $args[$this->name . '_sort'] = $this->getSortBy();
         if ($this->paginator) {
             $args[$this->paginator->name] = $this->paginator->getCurrentPage();
@@ -282,11 +275,11 @@ class Crud extends Grid
     private function _getModelActions(string $appliesTo): array
     {
         $actions = [];
-        if ($appliesTo === Model\UserAction::APPLIES_TO_SINGLE_RECORD && !empty($this->singleScopeActions)) {
+        if ($appliesTo === Model\UserAction::APPLIES_TO_SINGLE_RECORD && $this->singleScopeActions !== []) {
             foreach ($this->singleScopeActions as $action) {
                 $actions[] = $this->model->getUserAction($action);
             }
-        } elseif ($appliesTo === Model\UserAction::APPLIES_TO_NO_RECORDS && !empty($this->noRecordScopeActions)) {
+        } elseif ($appliesTo === Model\UserAction::APPLIES_TO_NO_RECORDS && $this->noRecordScopeActions !== []) {
             foreach ($this->noRecordScopeActions as $action) {
                 $actions[] = $this->model->getUserAction($action);
             }
@@ -301,7 +294,7 @@ class Crud extends Grid
      * Set callback for edit action in Crud.
      * Callback function will receive the Edit Form and Executor as param.
      */
-    public function onFormEdit(\Closure $fx)
+    public function onFormEdit(\Closure $fx): void
     {
         $this->setOnActions('edit', $fx);
     }
@@ -310,7 +303,7 @@ class Crud extends Grid
      * Set callback for add action in Crud.
      * Callback function will receive the Add Form and Executor as param.
      */
-    public function onFormAdd(\Closure $fx)
+    public function onFormAdd(\Closure $fx): void
     {
         $this->setOnActions('add', $fx);
     }
@@ -319,7 +312,7 @@ class Crud extends Grid
      * Set callback for both edit and add action form.
      * Callback function will receive Forms and Executor as param.
      */
-    public function onFormAddEdit(\Closure $fx)
+    public function onFormAddEdit(\Closure $fx): void
     {
         $this->onFormEdit($fx);
         $this->onFormAdd($fx);

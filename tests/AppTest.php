@@ -11,7 +11,7 @@ use Atk4\Ui\HtmlTemplate;
 
 class AppTest extends TestCase
 {
-    protected function getApp(): App
+    protected function createApp(): App
     {
         return new App([
             'catchExceptions' => false,
@@ -21,9 +21,9 @@ class AppTest extends TestCase
 
     public function testTemplateClassDefault(): void
     {
-        $app = $this->getApp();
+        $app = $this->createApp();
 
-        $this->assertInstanceOf(
+        static::assertInstanceOf(
             HtmlTemplate::class,
             $app->loadTemplate('html.html')
         );
@@ -34,10 +34,10 @@ class AppTest extends TestCase
         $anotherTemplateClass = new class() extends HtmlTemplate {
         };
 
-        $app = $this->getApp();
+        $app = $this->createApp();
         $app->templateClass = get_class($anotherTemplateClass);
 
-        $this->assertInstanceOf(
+        static::assertInstanceOf(
             get_class($anotherTemplateClass),
             $app->loadTemplate('html.html')
         );
@@ -45,7 +45,7 @@ class AppTest extends TestCase
 
     public function testUnexpectedOutputLateError(): void
     {
-        $app = $this->getApp();
+        $app = $this->createApp();
 
         ob_start();
         $testStr = 'direct output test';
@@ -56,7 +56,7 @@ class AppTest extends TestCase
             $this->expectExceptionMessage('Unexpected output detected');
             $app->terminateHtml('');
         } finally {
-            $this->assertSame($testStr, ob_get_contents());
+            static::assertSame($testStr, ob_get_contents());
             ob_end_clean();
         }
     }

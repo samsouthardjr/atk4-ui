@@ -10,7 +10,8 @@ namespace Atk4\Ui;
 class JsModal extends JsExpression
 {
     /**
-     * @param string $title when empty, header will be remove in modal
+     * @param string|null        $title when empty, header will be removed in modal
+     * @param string|VirtualPage $url
      */
     public function __construct($title, $url, array $args = [], string $dataType = 'json')
     {
@@ -18,9 +19,9 @@ class JsModal extends JsExpression
             $url = $url->getJsUrl('cut');
         }
 
-        parent::__construct('$(this).atkCreateModal([arg])', ['arg' => ['uri' => $url, 'title' => $title, 'data_type' => $dataType, 'uri_options' => $args]]);
+        parent::__construct('$(this).atkCreateModal([arg])', ['arg' => ['url' => $url, 'title' => $title, 'dataType' => $dataType, 'urlOptions' => $args]]);
 
-        if (empty($title)) {
+        if (!$title) {
             $this->removeHeader();
         }
     }
@@ -33,9 +34,9 @@ class JsModal extends JsExpression
      *      ex: changing color text for header
      *      $jsModal->setOption('headerCss', 'ui blue header');
      *
-     *  'label' -> set the text loader value.
+     *  'loadingLabel' -> set the text loader value.
      *      ex: changing default 'Loading...' for no text
-     *      $jsModal->setOption('label', '');
+     *      $jsModal->setOption('loadingLabel', '');
      *
      *   'modalCss' -> customize css class name for the entire modal.
      *      ex: making modal fullscreen
@@ -48,13 +49,16 @@ class JsModal extends JsExpression
      *
      * You can set option individually or supply an array.
      *
+     * @param string|array $options
+     * @param ($options is array ? never : mixed) $value
+     *
      * @return $this
      */
     public function setOption($options, $value = null)
     {
         if (is_array($options)) {
-            foreach ($options as $key => $value) {
-                $this->args['arg'][$key] = $value;
+            foreach ($options as $k => $v) {
+                $this->args['arg'][$k] = $v;
             }
         } else {
             $this->args['arg'][$options] = $value;

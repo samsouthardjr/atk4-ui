@@ -9,25 +9,21 @@ use Atk4\Data\Field;
 use Atk4\Data\Model;
 use Atk4\Data\Model\EntityFieldPair;
 use Atk4\Data\Reference\ContainsMany;
+use Atk4\Data\ValidationException;
 use Atk4\Ui\Form\Control;
 
-/**
- * Implements a form.
- */
 class Form extends View
 {
     use \Atk4\Core\HookTrait;
 
-    /** @const string Executed when form is submitted */
+    /** Executed when form is submitted */
     public const HOOK_SUBMIT = self::class . '@submit';
-    /** @const string Executed when form is submitted */
+    /** Executed when form is submitted */
     public const HOOK_DISPLAY_ERROR = self::class . '@displayError';
-    /** @const string Executed when form is submitted */
+    /** Executed when form is submitted */
     public const HOOK_DISPLAY_SUCCESS = self::class . '@displaySuccess';
-    /** @const string Executed when self::loadPost() method is called. */
+    /** Executed when self::loadPost() method is called. */
     public const HOOK_LOAD_POST = self::class . '@loadPost';
-
-    // {{{ Properties
 
     public $ui = 'form';
     public $defaultTemplate = 'form.html';
@@ -63,7 +59,7 @@ class Form extends View
      */
     public $formElement;
 
-    /** @var \Atk4\Ui\Form\Layout A current layout of a form, needed if you call Form->addControl(). */
+    /** @var Form\Layout A current layout of a form, needed if you call Form->addControl(). */
     public $layout;
 
     /** @var array<string, Control> List of form controls currently registered with this form. */
@@ -77,7 +73,7 @@ class Form extends View
      *
      * @var Button|array|false Button object, seed or false to not show button at all
      */
-    public $buttonSave = [Button::class, 'Save', 'primary'];
+    public $buttonSave = [Button::class, 'Save', 'class.primary' => true];
 
     /**
      * When form is submitted successfully, this template is used by method
@@ -109,10 +105,8 @@ class Form extends View
      *  Show "target' if 'source1' is not empty AND is a number
      *      OR
      *  Show 'target' if 'source1' is exactly 5.
-     *
-     * @var array
      */
-    public $controlDisplayRules = [];
+    public array $controlDisplayRules = [];
 
     /**
      * Default css selector for JsConditionalForm.
@@ -123,35 +117,13 @@ class Form extends View
      */
     public $controlDisplaySelector = '.field';
 
-    /** @var array Use this apiConfig variable to pass API settings to Semantic UI in .api(). */
+    /** @var array Use this apiConfig variable to pass API settings to Fomantic-UI in .api(). */
     public $apiConfig = [];
 
-    /** @var array Use this formConfig variable to pass settings to Semantic UI in .from(). */
+    /** @var array Use this formConfig variable to pass settings to Fomantic-UI in .from(). */
     public $formConfig = [];
 
-    // }}}
-
     // {{{ Base Methods
-
-    /**
-     * @param mixed $defaults CSS class or seed array
-     *
-     * @todo this should also call parent::__construct, but we have to refactor View::__construct method parameters too
-     */
-    public function __construct($defaults = [])
-    {
-        if (!is_array($defaults)) {
-            $defaults = [$defaults];
-        }
-
-        // CSS class
-        if (array_key_exists(0, $defaults)) {
-            $this->addClass($defaults[0]);
-            unset($defaults[0]);
-        }
-
-        $this->setDefaults($defaults);
-    }
 
     protected function init(): void
     {
@@ -170,18 +142,18 @@ class Form extends View
     }
 
     /**
-     * initialize form layout. You can inject custom layout
+     * Initialize form layout. You can inject custom layout
      * if you 'layout' => .. to constructor.
      */
-    protected function initLayout()
+    protected function initLayout(): void
     {
+        // TODO simplify
         if ($this->layout === null) {
-            $this->layout = [Form\Layout::class];
+            $this->layout = [Form\Layout::class]; // @phpstan-ignore-line
         }
 
         if (is_string($this->layout) || is_array($this->layout)) {
-            $this->layout = Factory::factory($this->layout, ['form' => $this]);
-            $this->layout = $this->add($this->layout);
+            $this->layout = $this->add(Factory::factory($this->layout, ['form' => $this])); // @phpstan-ignore-line
         } elseif (is_object($this->layout)) {
             $this->layout->form = $this;
             $this->add($this->layout);
@@ -191,14 +163,14 @@ class Form extends View
         }
 
         // allow to submit by pressing an enter key when child control is focused
-        $this->on('submit', new JsExpression('if (event.target === this) { $([name]).form("submit"); }', ['name' => '#' . $this->formElement->name]));
+        $this->on('submit', new JsExpression('if (event.target === this) { $([name]).form(\'submit\'); }', ['name' => '#' . $this->formElement->name]));
 
         // Add save button in layout
         if ($this->buttonSave) {
             $this->buttonSave = $this->layout->addButton($this->buttonSave);
             $this->buttonSave->setAttr('tabindex', 0);
-            $this->buttonSave->on('click', $this->js(null, null, $this->formElement)->form('submit'));
-            $this->buttonSave->on('keypress', new JsExpression('if (event.keyCode === 13){ $([name]).form("submit"); }', ['name' => '#' . $this->formElement->name]));
+            $this->buttonSave->on('click', $this->js(false, null, $this->formElement)->form('submit'));
+            $this->buttonSave->on('keypress', new JsExpression('if (event.keyCode === 13) { $([name]).form(\'submit\'); }', ['name' => '#' . $this->formElement->name]));
         }
     }
 
@@ -252,6 +224,7 @@ class Form extends View
         // Model is set for the form and also for the current layout
         try {
             parent::setModel($model);
+
             $this->layout->setModel($model, $fields);
         } catch (Exception $e) {
             throw $e->addMoreInfo('model', $model);
@@ -283,9 +256,13 @@ class Form extends View
                 }
 
                 return $response;
-            } catch (\Atk4\Data\ValidationException $e) {
+            } catch (ValidationException $e) {
                 $response = [];
                 foreach ($e->errors as $field => $error) {
+                    if (!isset($this->controls[$field])) {
+                        throw $e;
+                    }
+
                     $response[] = $this->error($field, $error);
                 }
 
@@ -312,7 +289,7 @@ class Form extends View
      * @param string $fieldName Field name
      * @param string $str       Error message
      *
-     * @return JsChain|array
+     * @return JsChain|array<int, JsChain>
      */
     public function error($fieldName, $str)
     {
@@ -330,17 +307,17 @@ class Form extends View
      * Causes form to generate success message.
      *
      * @param View|string $success     Success message or a View to display in modal
-     * @param string      $sub_header  Sub-header
+     * @param string      $subHeader   Sub-header
      * @param bool        $useTemplate Backward compatibility
      *
      * @return JsChain
      */
-    public function success($success = 'Success', $sub_header = null, $useTemplate = true)
+    public function success($success = 'Success', $subHeader = null, $useTemplate = true)
     {
         $response = null;
         // by using this hook you can overwrite default behavior of this method
         if ($this->hookHasCallbacks(self::HOOK_DISPLAY_SUCCESS)) {
-            return $this->hook(self::HOOK_DISPLAY_SUCCESS, [$success, $sub_header]);
+            return $this->hook(self::HOOK_DISPLAY_SUCCESS, [$success, $subHeader]);
         }
 
         if ($success instanceof View) {
@@ -349,8 +326,8 @@ class Form extends View
             $response = $this->getApp()->loadTemplate($this->successTemplate);
             $response->set('header', $success);
 
-            if ($sub_header) {
-                $response->set('message', $sub_header);
+            if ($subHeader) {
+                $response->set('message', $subHeader);
             } else {
                 $response->del('p');
             }
@@ -360,7 +337,7 @@ class Form extends View
             $response = new Message([$success, 'type' => 'success', 'icon' => 'check']);
             $response->setApp($this->getApp());
             $response->invokeInit();
-            $response->text->addParagraph($sub_header);
+            $response->text->addParagraph($subHeader);
         }
 
         return $response;
@@ -373,38 +350,22 @@ class Form extends View
     /**
      * Add form control into current layout. If no layout, create one. If no model, create blank one.
      *
-     * @param array|Control $control
-     * @param array|Field   $field
+     * @param array<mixed>|Control $control
+     * @param array<mixed>         $fieldSeed
      */
-    public function addControl(string $name, $control = [], $field = []): Control
+    public function addControl(string $name, $control = [], array $fieldSeed = []): Control
     {
-        return $this->layout->addControl($name, $control, $field);
-    }
-
-    /**
-     * @param array<int, array> $controls
-     *
-     * @return $this
-     */
-    public function addControls(array $controls)
-    {
-        foreach ($controls as $control) {
-            $this->addControl(...$control);
-        }
-
-        return $this;
+        return $this->layout->addControl($name, $control, $fieldSeed);
     }
 
     /**
      * Add header into the form, which appears as a separator.
      *
      * @param string|array $title
-     *
-     * @return Form\Layout
      */
-    public function addHeader($title = null)
+    public function addHeader($title = null): void
     {
-        return $this->layout->addHeader($title);
+        $this->layout->addHeader($title);
     }
 
     /**
@@ -425,24 +386,11 @@ class Form extends View
      *
      * @param string $name Name of control
      *
-     * @return JsChain
+     * @return Jquery
      */
     public function jsInput($name)
     {
         return $this->layout->getControl($name)->js()->find('input');
-    }
-
-    /**
-     * Returns JS Chain that targets INPUT of a specified element. This method is handy
-     * if you wish to set a value to a certain field.
-     *
-     * @param string $name Name of control
-     *
-     * @return JsChain
-     */
-    public function jsControl($name)
-    {
-        return $this->layout->getControl($name)->js();
     }
 
     // }}}
@@ -459,7 +407,7 @@ class Form extends View
      * 3. $f->type is converted into seed and evaluated
      * 4. lastly, falling back to Line, Dropdown (based on $reference and $enum)
      *
-     * @param array $ControlSeed
+     * @param array<string, mixed> $ControlSeed
      */
     public function controlFactory(Field $field, $ControlSeed = []): Control
     {
@@ -467,7 +415,7 @@ class Form extends View
 
         $fallbackSeed = [Control\Line::class];
 
-        if ($field->type === 'json' && $field->getReference() !== null) {
+        if ($field->type === 'json' && $field->hasReference()) {
             $limit = ($field->getReference() instanceof ContainsMany) ? 0 : 1;
             $model = $field->getReference()->refModel($this->model);
             $fallbackSeed = [Control\Multiline::class, 'model' => $model, 'rowLimit' => $limit, 'caption' => $model->getModelCaption()];
@@ -476,7 +424,7 @@ class Form extends View
                 $fallbackSeed = [Control\Dropdown::class, 'values' => array_combine($field->enum, $field->enum)];
             } elseif ($field->values) {
                 $fallbackSeed = [Control\Dropdown::class, 'values' => $field->values];
-            } elseif ($field->getReference() !== null) {
+            } elseif ($field->hasReference()) {
                 $fallbackSeed = [Control\Lookup::class, 'model' => $field->getReference()->refModel($this->model)];
             }
         }
@@ -505,21 +453,22 @@ class Form extends View
         return Factory::factory($ControlSeed, $defaults);
     }
 
-    /** @var array Describes how factory converts type to control seed Provides control seeds for most common types. */
-    protected $typeToControl = [
+    /**
+     * @var array<string, array>
+     */
+    protected array $typeToControl = [
         'boolean' => [Control\Checkbox::class],
         'text' => [Control\Textarea::class],
-        'string' => [Control\Line::class],
-        'datetime' => [Control\Calendar::class, ['type' => 'datetime']],
-        'date' => [Control\Calendar::class, ['type' => 'date']],
-        'time' => [Control\Calendar::class, ['type' => 'time']],
+        'datetime' => [Control\Calendar::class, 'type' => 'datetime'],
+        'date' => [Control\Calendar::class, 'type' => 'date'],
+        'time' => [Control\Calendar::class, 'type' => 'time'],
         'atk4_money' => [Control\Money::class],
     ];
 
     /**
      * Looks inside the POST of the request and loads it into a current model.
      */
-    protected function loadPost()
+    protected function loadPost(): void
     {
         $this->hook(self::HOOK_LOAD_POST, [&$_POST]);
 
@@ -527,8 +476,8 @@ class Form extends View
         foreach ($this->controls as $k => $control) {
             try {
                 // save field value only if field was editable in form at all
-                if (!$control->readonly && !$control->disabled) {
-                    $control->set($this->getApp()->ui_persistence->typecastLoadField($control->entityField->getField(), $_POST[$k] ?? null));
+                if (!$control->readOnly && !$control->disabled) {
+                    $control->set($this->getApp()->uiPersistence->typecastLoadField($control->entityField->getField(), $_POST[$k] ?? null));
                 }
             } catch (\Exception $e) {
                 $messages = [];
@@ -541,14 +490,14 @@ class Form extends View
         }
 
         if (count($errors) > 0) {
-            throw new \Atk4\Data\ValidationException($errors);
+            throw new ValidationException($errors);
         }
     }
 
     protected function renderView(): void
     {
         $this->ajaxSubmit();
-        if (!empty($this->controlDisplayRules)) {
+        if ($this->controlDisplayRules !== []) {
             $this->js(true, new JsConditionalForm($this, $this->controlDisplayRules, $this->controlDisplaySelector));
         }
 
@@ -559,20 +508,17 @@ class Form extends View
     {
         $output = parent::renderTemplateToHtml($region);
 
-        return $this->fixFormInRenderedHtml($output);
+        return $this->fixOwningFormAttrInRenderedHtml($output);
     }
 
-    public function fixFormInRenderedHtml(string $html): string
+    public function fixOwningFormAttrInRenderedHtml(string $html): string
     {
-        $innerFormTags = ['button', 'datalist', 'fieldset', 'input', 'keygen', 'label', 'legend',
-            'meter', 'optgroup', 'option', 'output', 'progress', 'select', 'textarea', ];
-
-        return preg_replace('~<(' . implode('|', $innerFormTags) . ')(?!\w| form=")~i', '$0 form="' . $this->formElement->name . '"', $html);
+        return preg_replace('~<(button|fieldset|input|output|select|textarea)(?!\w| form=")~i', '$0 form="' . $this->formElement->name . '"', $html);
     }
 
     /**
-     * Set Semantic-ui Api settings to use with form. A complete list is here:
-     * https://semantic-ui.com/behaviors/api.html#/settings.
+     * Set Fomantic-UI Api settings to use with form. A complete list is here:
+     * https://fomantic-ui.com/behaviors/api.html#/settings .
      *
      * @param array $config
      *
@@ -586,7 +532,7 @@ class Form extends View
     }
 
     /**
-     * Set Semantic-ui From settings to use with form. A complete list is here:
+     * Set Fomantic-UI Form settings to use with form. A complete list is here:
      * https://fomantic-ui.com/behaviors/form.html#/settings.
      *
      * @param array $config
@@ -603,14 +549,14 @@ class Form extends View
     /**
      * Does ajax submit.
      */
-    public function ajaxSubmit()
+    public function ajaxSubmit(): void
     {
         $this->js(true)->form(array_merge(['inline' => true, 'on' => 'blur'], $this->formConfig));
 
         $this->js(true, null, $this->formElement)
             ->api(array_merge(['url' => $this->cb->getJsUrl(), 'method' => 'POST', 'serializeForm' => true], $this->apiConfig));
 
-        $this->on('change', 'input, textarea, select', $this->js()->form('remove prompt', new JsExpression('$(this).attr("name")')));
+        $this->on('change', 'input, textarea, select', $this->js()->form('remove prompt', new JsExpression('$(this).attr(\'name\')')));
 
         if (!$this->canLeave) {
             $this->js(true, (new JsChain('atk.formService'))->preventFormLeave($this->name));

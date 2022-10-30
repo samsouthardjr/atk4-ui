@@ -1,25 +1,28 @@
 import Vue from 'vue';
-import SuiVue from 'semantic-ui-vue';
-import atkClickOutside from '../directives/click-outside.directive';
-import { focus } from '../directives/commons.directive';
+import SemanticUiVue from 'semantic-ui-vue';
+import atk from 'atk';
 
-Vue.use(SuiVue);
+// disable console logs for non-minified build
+Vue.config.productionTip = false;
+Vue.config.devtools = false;
 
-Vue.component('flat-picker', () => import('vue-flatpickr-component'));
+Vue.use(SemanticUiVue);
 
-// Vue loader component to display while dynamic component is loading.
+Vue.component('flatpickr-picker', () => import('vue-flatpickr-component'));
+
+// vue loader component to display while dynamic component is loading
 const atkVueLoader = {
     name: 'atk-vue-loader',
     template: '<div><div class="ui active centered inline loader"></div></div>',
 };
 
-// Vue error component to display when dynamic component loading fail.
+// vue error component to display when dynamic component loading fail
 const atkVueError = {
     name: 'atk-vue-error',
     template: '<div class="ui negative message"><p>Error: Unable to load Vue component</p></div>',
 };
 
-// Return async component that will load on demand.
+// return async component that will load on demand
 const componentFactory = (name, component) => () => ({
     component: component().then((r) => { atk.vueService.markComponentLoaded(name); return r; }),
     loading: atkVueLoader,
@@ -28,60 +31,42 @@ const componentFactory = (name, component) => () => ({
 });
 
 const atkComponents = {
-    'atk-inline-edit': componentFactory('atk-inline-edit', () => import(/* webpackChunkName: "atk-vue-inline-edit" */'../components/inline-edit.component')),
-    'atk-item-search': componentFactory('atk-item-search', () => import(/* webpackChunkName: "atk-vue-item-search" */'../components/item-search.component')),
-    'atk-multiline': componentFactory('atk-multiline', () => import(/* webpackChunkName: "atk-vue-multiline" */'../components/multiline/multiline.component')),
-    'atk-tree-item-selector': componentFactory('atk-tree-item-selector', () => import(/* webpackChunkName: "atk-vue-tree-item-selector" */'../components/tree-item-selector/tree-item-selector.component')),
-    'atk-query-builder': componentFactory('atk-query-builder', () => import(/* webpackChunkName: "atk-vue-query-builder" */'../components/query-builder/query-builder.component.vue')),
+    'atk-inline-edit': componentFactory('atk-inline-edit', () => import(/* webpackChunkName: 'atk-vue-inline-edit' */'../vue-components/inline-edit.component')),
+    'atk-item-search': componentFactory('atk-item-search', () => import(/* webpackChunkName: 'atk-vue-item-search' */'../vue-components/item-search.component')),
+    'atk-multiline': componentFactory('atk-multiline', () => import(/* webpackChunkName: 'atk-vue-multiline' */'../vue-components/multiline/multiline.component')),
+    'atk-tree-item-selector': componentFactory('atk-tree-item-selector', () => import(/* webpackChunkName: 'atk-vue-tree-item-selector' */'../vue-components/tree-item-selector/tree-item-selector.component')),
+    'atk-query-builder': componentFactory('atk-query-builder', () => import(/* webpackChunkName: 'atk-vue-query-builder' */'../vue-components/query-builder/query-builder.component.vue')),
 };
 
-// setup atk custom directives.
-const atkDirectives = [{ name: 'click-outside', def: atkClickOutside }, { name: 'focus', def: focus }];
-atkDirectives.forEach((directive) => {
-    Vue.directive(directive.name, directive.def);
-});
-
 /**
- * Singleton class
- * Create Vue component.
+ * Allow to create Vue component.
  */
 class VueService {
-    static getInstance() {
-        return this.instance;
-    }
-
     constructor() {
-        if (!VueService.instance) {
-            this.vues = [];
-            this.vueMixins = {
-                methods: {
-                    getData: function () {
-                        return this.initData;
-                    },
+        this.vues = [];
+        this.vueMixins = {
+            methods: {
+                getData: function () {
+                    return this.initData;
                 },
-                // provide method to our child component.
-                // child component would need to inject a method to have access using the inject property,
-                // inject: ['getRootData'],
-                // Once inject you can get initial data using this.getRootData().
-                provide: function () {
-                    return {
-                        getRootData: this.getData,
-                    };
-                },
-            };
-            VueService.instance = this;
-        }
-        return VueService.instance;
+            },
+            // provide method to our child component.
+            // child component would need to inject a method to have access using the inject property,
+            // inject: ['getRootData'],
+            // Once inject you can get initial data using this.getRootData().
+            provide: function () {
+                return {
+                    getRootData: this.getData,
+                };
+            },
+        };
     }
 
     /**
-   * Created a Vue component and add it to the vues array.
-   * For Root component (App) to be aware that it's children component is
-   * mounted, you need to use @hook:mounted="setReady"
-   * @param name
-   * @param component
-   * @param data
-   */
+     * Created a Vue component and add it to the vues array.
+     * For root component (App) to be aware that it's children component is
+     * mounted, you need to use @hook:mounted="setReady"
+     */
     createAtkVue(id, component, data) {
         this.registerComponent({
             ids: [id],
@@ -97,12 +82,8 @@ class VueService {
     }
 
     /**
-   * Create a Vue instance from an external src component definition.
-   *
-   * @param name
-   * @param component
-   * @param data
-   */
+     * Create a Vue instance from an external src component definition.
+     */
     createVue(id, componentName, component, data) {
         this.registerComponent({
             ids: [id],
@@ -118,8 +99,8 @@ class VueService {
     }
 
     /*
-    *  Add component to vues container.
-    *  Group ids that are using the same component.
+     * Add component to vues container.
+     * Group ids that are using the same component.
      */
     registerComponent(component) {
         // check if that component is already registered
@@ -132,28 +113,28 @@ class VueService {
     }
 
     /**
-   * Register components within Vue.
-   */
+     * Register components within Vue.
+     */
     useComponent(component) {
         if (window[component]) {
             Vue.use(window[component]);
         } else {
-            console.error('Unable to register component: ' + component + '. Make sure it is load correctly.');
+            console.error('Vue "' + component + '" component not found');
         }
     }
 
     /**
-   * Return Vue.
-   *
-   * @returns {Vue | VueConstructor}
-   */
+     * Return Vue.
+     *
+     * @returns {Vue}
+     */
     getVue() {
         return Vue;
     }
 
-    /*
-    * Mark a component as loaded.
-    */
+    /**
+     * Mark a component as loaded.
+     */
     markComponentLoaded(name) {
         this.vues.forEach((component) => {
             if (component.name === name) {
@@ -170,7 +151,4 @@ class VueService {
     }
 }
 
-const vueService = new VueService();
-Object.freeze(vueService);
-
-export default vueService;
+export default Object.freeze(new VueService());
